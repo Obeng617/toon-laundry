@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Award, Gift, Package, Plus, Search, Ticket } from "lucide-react";
+import { ArrowRight, Award, Gift, Package, Search, Ticket } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useApp } from "@/context/AppContext";
 import { formatCurrency } from "@/lib/pricing";
@@ -38,19 +38,13 @@ export default function OrdersPage() {
   return (
     <AppShell mode="customer">
       <div className="space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-[#02A1DB]">
-              Order Tracking
-            </p>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0B2049]">
-              My Orders &amp; Tickets
-            </h1>
-          </div>
-          <Link href="/book" className="btn-tino-primary text-xs px-4 py-2.5 self-start">
-            <Plus className="w-4 h-4" />
-            New Order
-          </Link>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-[#02A1DB]">
+            Order Tracking
+          </p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0B2049]">
+            My Orders &amp; Tickets
+          </h1>
         </div>
 
         {/* Section 3: Loyalty Progress & Available Referral Discounts Banner */}

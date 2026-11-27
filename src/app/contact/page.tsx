@@ -70,7 +70,7 @@ export default function ContactPage() {
               <div className="font-bold text-sm text-[#0B2049]">Location &amp; Coverage</div>
               <div className="text-sm text-slate-600 mt-0.5">
                 Location: <strong>{settings.location}</strong> • Coverage:{" "}
-                <strong>{settings.coverageAreas}</strong> (No pickup or delivery fee)
+                <strong>{settings.coverageAreas}</strong>
               </div>
             </div>
           </div>

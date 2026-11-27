@@ -24,8 +24,8 @@ export default function PricingPage() {
               Simple, Clear Pricing
             </h1>
             <p className="text-[15px] sm:text-base font-semibold text-slate-700 mt-1.5 leading-relaxed">
-              We record your exact decimal weight and bill using our half-kilogram tariff table. No
-              pickup or delivery fees. Pay only on delivery or collection.
+              We record your exact decimal weight and bill using our half-kilogram tariff table. Pay
+              only on delivery or collection.
             </p>
           </div>
           <Link href="/book" className="btn-tino-primary text-sm self-start">
@@ -133,10 +133,6 @@ export default function PricingPage() {
                 </Link>
                 . When a new client registers with your code and completes their first order, you
                 earn <strong>{settings.discountPercent}% off</strong> one of your next orders.
-              </p>
-              <p>
-                <strong>No Pickup or Delivery Fees:</strong> Pickup and delivery are arranged
-                directly with Tinoclean with no coverage-area restriction.
               </p>
             </div>
           </div>

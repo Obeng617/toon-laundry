@@ -205,9 +205,8 @@ function BookOrderForm() {
                       : "border-slate-200 bg-white hover:border-slate-300"
                   }`}
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center">
                     <Icon className={`w-5 h-5 ${selected ? "text-[#264099]" : "text-slate-400"}`} />
-                    <span className="text-xs font-extrabold text-emerald-600">No extra fee</span>
                   </div>
                   <div className="font-bold text-sm text-[#0B2049]">{opt.title}</div>
                   <div className="text-xs text-slate-500">{opt.desc}</div>

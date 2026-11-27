@@ -273,7 +273,7 @@ export default function HomePage() {
                 {
                   step: 2,
                   title: "Choose drop-off, pickup or delivery",
-                  desc: "No pickup or delivery fee — coverage everywhere",
+                  desc: "Coverage everywhere",
                 },
                 {
                   step: 3,
