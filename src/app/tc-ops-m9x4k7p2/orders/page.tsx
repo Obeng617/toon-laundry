@@ -60,6 +60,9 @@ function AdminOrdersContent() {
   const [readyByInput, setReadyByInput] = useState("");
   const [actionMsg, setActionMsg] = useState("");
   const [actionErr, setActionErr] = useState("");
+  const [statusMsg, setStatusMsg] = useState("");
+  const [statusErr, setStatusErr] = useState("");
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   // Payment quick form state
   const [payAmount, setPayAmount] = useState("");
@@ -101,6 +104,8 @@ function AdminOrdersContent() {
     setSelectedOrderId(id);
     setActionErr("");
     setActionMsg("");
+    setStatusErr("");
+    setStatusMsg("");
     if (found) {
       const nextMap: Record<string, string> = {};
       for (const item of found.items) {
@@ -168,17 +173,28 @@ function AdminOrdersContent() {
   };
 
   const handleStatusChange = async (nextStatus: OrderStatus) => {
-    if (!selectedOrder) return;
+    if (!selectedOrder || updatingStatus) return;
     setActionErr("");
     setActionMsg("");
-    const res = await updateOrderStatus(selectedOrder.id, nextStatus, {
-      unpaidExceptionReason: exceptionReason.trim() || undefined,
-    });
-    if (!res.ok) {
-      setActionErr(res.error || "Could not update status.");
-    } else {
-      setExceptionReason("");
-      setActionMsg(`Order updated to ${ORDER_STATUS_META[nextStatus].label}. Customer notified.`);
+    setStatusErr("");
+    setStatusMsg("");
+    setUpdatingStatus(true);
+    try {
+      const res = await updateOrderStatus(selectedOrder.id, nextStatus, {
+        unpaidExceptionReason: exceptionReason.trim() || undefined,
+      });
+      if (!res.ok) {
+        const msg = res.error || "Could not update status.";
+        setActionErr(msg);
+        setStatusErr(msg);
+      } else {
+        setExceptionReason("");
+        const msg = `Order updated to ${ORDER_STATUS_META[nextStatus].label}. Customer notified.`;
+        setActionMsg(msg);
+        setStatusMsg(msg);
+      }
+    } finally {
+      setUpdatingStatus(false);
     }
   };
 
@@ -186,6 +202,7 @@ function AdminOrdersContent() {
     e.preventDefault();
     if (!selectedOrder) return;
     setActionErr("");
+    setStatusErr("");
     const res = await recordPayment({
       orderId: selectedOrder.id,
       amount: Number(payAmount) || selectedOrder.balanceDue,
@@ -543,8 +560,9 @@ function AdminOrdersContent() {
                       <button
                         key={st}
                         type="button"
+                        disabled={updatingStatus}
                         onClick={() => handleStatusChange(st)}
-                        className={`rounded-xl px-3 py-1.5 text-xs font-bold border transition cursor-pointer ${
+                        className={`rounded-xl px-3 py-1.5 text-xs font-bold border transition cursor-pointer disabled:opacity-60 ${
                           isCurrent
                             ? "bg-tino-gradient text-white border-transparent shadow-sm"
                             : isNext
@@ -559,24 +577,45 @@ function AdminOrdersContent() {
                   {selectedOrder.status === "order_placed" && (
                     <button
                       type="button"
+                      disabled={updatingStatus}
                       onClick={() => handleStatusChange("rejected")}
-                      className="rounded-xl px-3 py-1.5 text-xs font-bold border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 cursor-pointer"
+                      className="rounded-xl px-3 py-1.5 text-xs font-bold border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 cursor-pointer disabled:opacity-60"
                     >
                       Reject Order
                     </button>
                   )}
                 </div>
 
+                {statusMsg && (
+                  <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3 text-xs font-semibold text-emerald-800 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    {statusMsg}
+                  </div>
+                )}
+                {statusErr && (
+                  <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-xs font-semibold text-red-700 flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    {statusErr}
+                  </div>
+                )}
+
                 {selectedOrder.balanceDue > 0 && currentUser?.role === "admin" && (
-                  <div className="rounded-xl bg-amber-50 border border-amber-200 p-3 space-y-2">
+                  <div
+                    className={`rounded-xl p-3 space-y-2 border ${
+                      statusErr
+                        ? "bg-amber-50 border-red-300 ring-2 ring-red-100"
+                        : "bg-amber-50 border-amber-200"
+                    }`}
+                  >
                     <div className="text-[11px] font-bold text-amber-900">
-                      Admin Unpaid Completion Exception (optional — logged in audit trail)
+                      Admin Unpaid Completion Exception — required to mark Completed while{" "}
+                      {formatCurrency(selectedOrder.balanceDue)} is unpaid (or record payment below)
                     </div>
                     <input
                       type="text"
                       value={exceptionReason}
                       onChange={(e) => setExceptionReason(e.target.value)}
-                      placeholder="Reason if releasing laundry before full payment..."
+                      placeholder="Enter written reason if releasing laundry before full payment..."
                       className="input-tino bg-white text-xs py-2"
                     />
                   </div>
