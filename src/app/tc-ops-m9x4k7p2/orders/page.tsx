@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   CreditCard,
+  MessageCircle,
   Plus,
   Scale,
   Search,
@@ -16,6 +17,7 @@ import {
 import { AppShell } from "@/components/AppShell";
 import { DigitalTicket } from "@/components/DigitalTicket";
 import { useApp } from "@/context/AppContext";
+import { buildTicketWhatsAppMessage, toWhatsAppNumber } from "@/lib/phone";
 import { buildOrderItemsAndTotals, formatCurrency } from "@/lib/pricing";
 import { CustomerCategory, FulfilmentMethod, OrderStatus, PaymentMethod } from "@/lib/types";
 import {
@@ -375,6 +377,36 @@ function AdminOrdersContent() {
                   >
                     <Ticket className="w-4 h-4" />
                     Digital Ticket
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const waNum = toWhatsAppNumber(selectedOrder.customerPhone);
+                      if (!waNum) {
+                        setActionErr("Customer phone number is missing or invalid for WhatsApp.");
+                        return;
+                      }
+                      const ticketUrl = `${window.location.origin}/ticket/${selectedOrder.publicToken}`;
+                      const msg = buildTicketWhatsAppMessage({
+                        businessName: settings.businessName,
+                        tagNumber: selectedOrder.tagNumber,
+                        customerName: selectedOrder.customerName,
+                        totalAmount: selectedOrder.totalAmount,
+                        balanceDue: selectedOrder.balanceDue,
+                        readyBy: selectedOrder.readyBy,
+                        ticketUrl,
+                        momoNumber: settings.momoNumber,
+                        momoAccountName: settings.momoAccountName,
+                      });
+                      window.open(
+                        `https://wa.me/${waNum}?text=${encodeURIComponent(msg)}`,
+                        "_blank"
+                      );
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 text-xs font-bold shadow-xs transition cursor-pointer"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    Send WhatsApp Ticket
                   </button>
                   <select
                     aria-label="Assign staff"
