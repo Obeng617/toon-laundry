@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import {
   ArrowRight,
   Award,
-  Calculator,
   CheckCircle2,
   Clock,
   Gift,
@@ -25,18 +24,12 @@ import { MomoHelpCard } from "./MomoHelpCard";
 import { ServiceIcon } from "./ServiceIcon";
 import { TinocleanLogo } from "./TinocleanLogo";
 import { useApp } from "@/context/AppContext";
-import { calculatePerKgService, calculateTariff, formatCurrency } from "@/lib/pricing";
+import { formatCurrency } from "@/lib/pricing";
 
 export function PublicLandingPage() {
   const { services, tariffs, settings } = useApp();
-  const [sampleWeight, setSampleWeight] = useState("1.5");
 
   const activeServices = services.filter((s) => s.isActive);
-  const weightVal = Math.max(0.5, Number(sampleWeight) || 1.0);
-  const studentPreview = calculateTariff(weightVal, "student", tariffs);
-  const regularPreview = calculateTariff(weightVal, "regular", tariffs);
-  const lightDuvetPreview = calculatePerKgService(weightVal, 10);
-  const heavyDuvetPreview = calculatePerKgService(weightVal, 15);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F5F9FA] text-[#0B2049]">
@@ -52,7 +45,7 @@ export function PublicLandingPage() {
               Services
             </a>
             <a href="#pricing" className="hover:text-[#264099] transition">
-              Pricing &amp; Calculator
+              Pricing
             </a>
             <a href="#perks" className="hover:text-[#264099] transition">
               Discounts &amp; Perks
@@ -228,69 +221,6 @@ export function PublicLandingPage() {
               We record your exact decimal weight and bill using our half-kilogram tariff table (1.0
               kg to 10.0 kg). Weights between brackets round up to the next 0.5 kg (minimum 1.0 kg).
             </p>
-          </div>
-
-          {/* Live Calculator */}
-          <div className="card-tino p-6 bg-gradient-to-br from-[#eff8fd] to-white border border-sky-200/80 space-y-4">
-            <div className="flex items-center gap-2">
-              <Calculator className="w-5 h-5 text-[#264099]" />
-              <h3 className="font-extrabold text-[#0B2049]">
-                Interactive Laundry Cost Calculator
-              </h3>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-              <div>
-                <label className="block text-xs font-extrabold text-slate-700 mb-1.5">
-                  Test any weight (kg):
-                </label>
-                <input
-                  type="number"
-                  step="0.1"
-                  min="0.5"
-                  max="25"
-                  value={sampleWeight}
-                  onChange={(e) => setSampleWeight(e.target.value)}
-                  className="input-tino bg-white font-extrabold text-lg"
-                />
-                <div className="text-xs font-semibold text-slate-700 mt-1">
-                  Measured: <strong>{studentPreview.actualWeightKg.toFixed(2)} kg</strong> → Billed
-                  bracket:{" "}
-                  <strong className="text-[#264099]">
-                    {studentPreview.billableBracketKg.toFixed(1)} kg
-                  </strong>
-                </div>
-              </div>
-
-              <div className="rounded-2xl bg-white border border-emerald-200 p-4">
-                <div className="text-xs font-extrabold text-emerald-700 flex items-center gap-1">
-                  <GraduationCap className="w-4 h-4" />
-                  Student Tariff
-                </div>
-                <div className="text-2xl font-black text-[#0B2049] mt-1">
-                  {formatCurrency(studentPreview.tariffAmount)}
-                </div>
-                <div className="text-xs font-semibold text-slate-600">Wash, Dry &amp; Fold</div>
-              </div>
-
-              <div className="rounded-2xl bg-white border border-sky-200 p-4">
-                <div className="text-xs font-extrabold text-[#264099]">Regular Tariff</div>
-                <div className="text-2xl font-black text-[#0B2049] mt-1">
-                  {formatCurrency(regularPreview.tariffAmount)}
-                </div>
-                <div className="text-xs font-semibold text-slate-600">Wash, Dry &amp; Fold</div>
-              </div>
-
-              <div className="rounded-2xl bg-white border border-slate-200 p-4 space-y-1">
-                <div className="text-xs font-bold text-slate-600">Duvets &amp; Same-Day Express</div>
-                <div className="text-xs font-extrabold text-[#0B2049]">
-                  Light Duvet / Express: {formatCurrency(lightDuvetPreview.lineTotal)}
-                </div>
-                <div className="text-xs font-extrabold text-[#264099]">
-                  Heavy Duvet: {formatCurrency(heavyDuvetPreview.lineTotal)}
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Sample Tariff Brackets Table */}

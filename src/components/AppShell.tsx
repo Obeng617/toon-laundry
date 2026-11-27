@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -14,6 +14,7 @@ import {
   LogIn,
   Package,
   PlusCircle,
+  RefreshCw,
   Settings,
   ShieldCheck,
   Tag,
@@ -43,7 +44,18 @@ export function AppShell({
   mode?: "customer" | "admin";
 }) {
   const pathname = usePathname();
-  const { hydrated, setupError, currentUser, unreadCount, users } = useApp();
+  const { hydrated, setupError, currentUser, unreadCount, users, refreshData } = useApp();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleAdminRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      await refreshData();
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   if (hydrated && setupError) {
     return <SetupRequiredBanner error={setupError} />;
@@ -167,6 +179,21 @@ export function AppShell({
             </div>
 
             <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={handleAdminRefresh}
+                disabled={refreshing}
+                title="Refresh orders, payments & notifications"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#F5F9FA] hover:bg-sky-50 border border-slate-200/80 px-3 h-10 text-xs font-bold text-[#0B2049] transition cursor-pointer disabled:opacity-60"
+              >
+                <RefreshCw
+                  className={`w-4 h-4 text-[#02A1DB] ${refreshing ? "animate-spin" : ""}`}
+                />
+                <span className="hidden sm:inline">
+                  {refreshing ? "Refreshing..." : "Refresh"}
+                </span>
+              </button>
+
               <Link
                 href="/notifications"
                 className="relative w-10 h-10 rounded-xl bg-[#F5F9FA] hover:bg-sky-50 flex items-center justify-center text-[#0B2049] transition"

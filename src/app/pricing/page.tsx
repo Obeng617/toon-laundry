@@ -1,21 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
-import { ArrowRight, Award, Calculator, GraduationCap, Info } from "lucide-react";
+import { ArrowRight, Award, GraduationCap, Info } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useApp } from "@/context/AppContext";
-import { calculatePerKgService, calculateTariff, formatCurrency } from "@/lib/pricing";
+import { formatCurrency } from "@/lib/pricing";
 
 export default function PricingPage() {
   const { tariffs, services, settings } = useApp();
-  const [sampleWeight, setSampleWeight] = useState("1.25");
-
-  const parsedWeight = Math.max(0.1, Number(sampleWeight) || 1.0);
-  const studentCalc = calculateTariff(parsedWeight, "student", tariffs);
-  const regularCalc = calculateTariff(parsedWeight, "regular", tariffs);
-  const lightDuvetCalc = calculatePerKgService(parsedWeight, 10);
-  const heavyDuvetCalc = calculatePerKgService(parsedWeight, 15);
 
   const otherServices = services.filter((s) => s.isActive && s.pricingType === "per_kg");
 
@@ -39,68 +32,6 @@ export default function PricingPage() {
             Book Laundry
             <ArrowRight className="w-4 h-4" />
           </Link>
-        </div>
-
-        {/* Interactive Weight Bracket Calculator */}
-        <div className="card-tino p-5 bg-gradient-to-br from-[#eff8fd] to-white border border-sky-200/70 space-y-4">
-          <div className="flex items-center gap-2">
-            <Calculator className="w-5 h-5 text-[#264099]" />
-            <h2 className="font-extrabold text-[#0B2049]">Live Weight &amp; Bracket Estimator</h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-            <div>
-              <label className="block text-xs font-extrabold text-slate-700 mb-1.5">
-                Enter measured weight (kg)
-              </label>
-              <input
-                type="number"
-                step="0.05"
-                min="0.1"
-                max="30"
-                value={sampleWeight}
-                onChange={(e) => setSampleWeight(e.target.value)}
-                className="input-tino font-bold text-lg"
-              />
-              <p className="text-xs font-semibold text-slate-700 mt-1">
-                Actual: <strong>{studentCalc.actualWeightKg.toFixed(2)} kg</strong> → Bracket:{" "}
-                <strong className="text-[#264099]">{studentCalc.billableBracketKg.toFixed(1)} kg</strong>
-              </p>
-            </div>
-
-            <div className="rounded-2xl bg-white border border-emerald-200 p-4">
-              <div className="flex items-center gap-1.5 text-xs font-extrabold text-emerald-700">
-                <GraduationCap className="w-4 h-4" />
-                Wash, Dry &amp; Fold (Student)
-              </div>
-              <div className="text-2xl font-black text-[#0B2049] mt-1">
-                {formatCurrency(studentCalc.tariffAmount)}
-              </div>
-              <div className="text-xs font-semibold text-slate-600">
-                Verified Student Account
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-white border border-sky-200 p-4">
-              <div className="text-xs font-extrabold text-[#264099]">Wash, Dry &amp; Fold (Regular)</div>
-              <div className="text-2xl font-black text-[#0B2049] mt-1">
-                {formatCurrency(regularCalc.tariffAmount)}
-              </div>
-              <div className="text-xs font-semibold text-slate-600">
-                {regularCalc.billableBracketKg.toFixed(1)} kg bracket
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-white border border-slate-200 p-4">
-              <div className="text-xs font-bold text-slate-700">Duvet / Express</div>
-              <div className="text-sm font-extrabold text-[#0B2049] mt-1">
-                Light / Express: {formatCurrency(lightDuvetCalc.lineTotal)}
-              </div>
-              <div className="text-sm font-extrabold text-[#264099]">
-                Heavy Duvet: {formatCurrency(heavyDuvetCalc.lineTotal)}
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Tariff Table (1.0 kg to 10.0 kg) */}

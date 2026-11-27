@@ -15,22 +15,20 @@ import {
 import { AppShell } from "@/components/AppShell";
 import { ServiceIcon } from "@/components/ServiceIcon";
 import { useApp } from "@/context/AppContext";
-import { buildOrderItemsAndTotals, formatCurrency } from "@/lib/pricing";
 import { DiscountType, FulfilmentMethod } from "@/lib/types";
 
 function BookOrderForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { currentUser, services, tariffs, settings, placeOrder } = useApp();
+  const { currentUser, services, settings, placeOrder } = useApp();
 
   const activeServices = services.filter((s) => s.isActive);
   const initialSlug = searchParams.get("service");
   const defaultService =
     activeServices.find((s) => s.slug === initialSlug) || activeServices[0];
 
-  // Multi-service weights map: serviceId -> weightKg (0 if not selected)
-  const [serviceWeights, setServiceWeights] = useState<Record<string, number>>(() =>
-    defaultService ? { [defaultService.id]: 1.5 } : {}
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>(() =>
+    defaultService ? [defaultService.id] : []
   );
   const [fulfilmentMethod, setFulfilmentMethod] = useState<FulfilmentMethod>("drop_off");
   const [customerName, setCustomerName] = useState(currentUser?.fullName || "");
@@ -52,52 +50,22 @@ function BookOrderForm() {
     return "none";
   }, [currentUser, settings.loyaltyWashesRequired]);
 
-  const serviceLines = useMemo(
-    () =>
-      Object.entries(serviceWeights)
-        .filter(([, w]) => w > 0)
-        .map(([serviceId, weightKg]) => ({ serviceId, weightKg })),
-    [serviceWeights]
-  );
-
-  const estimate = useMemo(
-    () =>
-      buildOrderItemsAndTotals({
-        lines: serviceLines,
-        services: activeServices,
-        tariffs,
-        category,
-        discountType: activeDiscountType,
-        discountPercent: settings.discountPercent,
-        isEstimated: true,
-      }),
-    [serviceLines, activeServices, tariffs, category, activeDiscountType, settings.discountPercent]
+  const selectedServices = useMemo(
+    () => activeServices.filter((s) => selectedServiceIds.includes(s.id)),
+    [activeServices, selectedServiceIds]
   );
 
   const toggleService = (serviceId: string) => {
-    setServiceWeights((prev) => {
-      const current = prev[serviceId] || 0;
-      if (current > 0) {
-        const next = { ...prev };
-        delete next[serviceId];
-        return next;
-      }
-      return { ...prev, [serviceId]: 1.5 };
-    });
-  };
-
-  const setWeightForService = (serviceId: string, weightKg: number) => {
-    setServiceWeights((prev) => ({
-      ...prev,
-      [serviceId]: Math.max(0.5, Number(weightKg) || 1.0),
-    }));
+    setSelectedServiceIds((prev) =>
+      prev.includes(serviceId) ? prev.filter((id) => id !== serviceId) : [...prev, serviceId]
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    if (serviceLines.length === 0) {
+    if (selectedServiceIds.length === 0) {
       setError("Please select at least one laundry service.");
       return;
     }
@@ -131,7 +99,7 @@ function BookOrderForm() {
         dropOffScheduledAt:
           fulfilmentMethod === "drop_off" && scheduledAt ? scheduledAt : undefined,
         specialInstructions: specialInstructions.trim() || undefined,
-        serviceLines,
+        serviceLines: selectedServiceIds.map((serviceId) => ({ serviceId, weightKg: 1 })),
       });
 
       if (!res.ok || !res.order) {
@@ -147,76 +115,48 @@ function BookOrderForm() {
   return (
     <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-5">
-        {/* Step 1: Select One or More Services + Weight per Service (Section 3) */}
+        {/* Step 1: Select One or More Services (Staff weighs laundry at drop-off/pickup) */}
         <section className="card-tino p-5 space-y-4">
           <div className="flex items-center gap-2">
             <span className="w-6 h-6 rounded-lg bg-tino-gradient text-white text-xs font-extrabold flex items-center justify-center">
               1
             </span>
             <div>
-              <h2 className="font-extrabold text-[#0B2049]">
-                Select Services &amp; Estimated Weight
-              </h2>
+              <h2 className="font-extrabold text-[#0B2049]">Select Services</h2>
               <p className="text-xs text-slate-500">
-                You can select one or more services. Each service is weighed and billed as its own
-                line on your ticket.
+                Choose the service(s) you want. Our staff will weigh your laundry and send your
+                digital ticket with the exact price.
               </p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {activeServices.map((srv) => {
-              const weight = serviceWeights[srv.id] || 0;
-              const selected = weight > 0;
+              const selected = selectedServiceIds.includes(srv.id);
               return (
-                <div
+                <button
                   key={srv.id}
-                  className={`rounded-2xl border p-4 space-y-3 transition ${
+                  type="button"
+                  onClick={() => toggleService(srv.id)}
+                  className={`w-full text-left rounded-2xl border p-4 flex items-start gap-3 transition cursor-pointer ${
                     selected
                       ? "border-[#02A1DB] bg-[#eff8fd] ring-2 ring-[#02A1DB]/20"
                       : "border-slate-200 bg-white hover:border-slate-300"
                   }`}
                 >
-                  <button
-                    type="button"
-                    onClick={() => toggleService(srv.id)}
-                    className="w-full text-left flex items-start gap-3 cursor-pointer"
-                  >
-                    <div className="w-11 h-11 rounded-[13px] bg-gradient-to-br from-[#eef7fc] to-[#d9eefb] border border-sky-200/70 flex items-center justify-center shrink-0 shadow-xs">
-                      <ServiceIcon name={srv.iconName} slug={srv.slug} className="w-6 h-6" />
+                  <div className="w-11 h-11 rounded-[13px] bg-gradient-to-br from-[#eef7fc] to-[#d9eefb] border border-sky-200/70 flex items-center justify-center shrink-0 shadow-xs">
+                    <ServiceIcon name={srv.iconName} slug={srv.slug} className="w-6 h-6" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-sm text-[#0B2049]">{srv.name}</span>
+                      {selected && (
+                        <CheckCircle2 className="w-4 h-4 text-[#02A1DB] shrink-0" />
+                      )}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-bold text-sm text-[#0B2049]">{srv.name}</span>
-                        <span className="text-xs font-extrabold text-[#264099]">
-                          {srv.pricingType === "half_kg_tariff"
-                            ? category === "student"
-                              ? "GH₵7/kg"
-                              : "GH₵8/kg"
-                            : `GH₵${srv.perKgRate}/kg`}
-                        </span>
-                      </div>
-                      <div className="text-xs text-slate-500 mt-0.5">{srv.description}</div>
-                    </div>
-                  </button>
-
-                  {selected && (
-                    <div className="pt-2 border-t border-sky-200/70 flex items-center justify-between gap-3">
-                      <label className="text-xs font-bold text-[#0B2049]">
-                        Est. Weight (kg):
-                      </label>
-                      <input
-                        type="number"
-                        step="0.5"
-                        min="0.5"
-                        max="50"
-                        value={weight}
-                        onChange={(e) => setWeightForService(srv.id, Number(e.target.value))}
-                        className="input-tino bg-white w-28 py-1.5 text-center font-bold"
-                      />
-                    </div>
-                  )}
-                </div>
+                    <div className="text-xs text-slate-500 mt-0.5">{srv.description}</div>
+                  </div>
+                </button>
               );
             })}
           </div>
@@ -363,29 +303,33 @@ function BookOrderForm() {
         <div className="card-tino p-5 space-y-4 sticky top-20">
           <h2 className="font-extrabold text-lg text-[#0B2049]">Order Summary</h2>
 
-          <div className="space-y-2 text-sm">
+          <div className="space-y-2.5 text-sm">
             <div className="flex justify-between">
               <span className="text-slate-600">Customer Category</span>
               <span className="font-bold uppercase text-[#264099]">{category}</span>
             </div>
 
-            {estimate.items.map((item) => (
-              <div
-                key={item.id}
-                className={`flex justify-between gap-2 ${
-                  item.itemType === "discount" ? "text-emerald-700 font-bold" : ""
-                }`}
-              >
-                <span className={item.itemType === "discount" ? "text-emerald-700" : "text-slate-600"}>
-                  {item.label}
-                </span>
-                <span className="font-bold shrink-0">{formatCurrency(item.lineTotal)}</span>
+            <div className="border-t border-slate-100 pt-2.5 space-y-1.5">
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Selected Services ({selectedServices.length})
               </div>
-            ))}
+              {selectedServices.length > 0 ? (
+                selectedServices.map((srv) => (
+                  <div key={srv.id} className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-[#0B2049]">{srv.name}</span>
+                    <span className="text-xs font-semibold text-slate-500 shrink-0">
+                      To be weighed
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-xs text-slate-400">No services selected yet.</div>
+              )}
+            </div>
 
-            <div className="border-t border-slate-200 pt-3 flex justify-between text-base font-extrabold text-[#0B2049]">
-              <span>Estimated Total</span>
-              <span className="text-[#264099]">{formatCurrency(estimate.totalAmount)}</span>
+            <div className="border-t border-slate-200 pt-3 flex items-center justify-between text-sm font-extrabold text-[#0B2049]">
+              <span>Final Total</span>
+              <span className="text-[#264099]">Calculated after weighing</span>
             </div>
           </div>
 
