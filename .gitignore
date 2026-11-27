@@ -9,3 +9,5 @@ out/
 Thumbs.db
 
 tsconfig.tsbuildinfo
+*.sql
+supabase/
