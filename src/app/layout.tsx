@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { AppProvider } from "@/context/AppContext";
+import { SplashScreen } from "@/components/SplashScreen";
 import { ToastBanner } from "@/components/ToastBanner";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -48,6 +49,7 @@ export default function RootLayout({
     <html lang="en" className={jakarta.variable}>
       <body className="min-h-screen bg-[#F5F9FA] text-[#0B2049] antialiased">
         <AppProvider>
+          <SplashScreen />
           {children}
           <ToastBanner />
         </AppProvider>
