@@ -35,11 +35,7 @@ Responsive installable web app (PWA) for **Tinoclean Laundry (UPSA)** built with
 ## 2. Production Setup Instructions
 
 ### Step 1: Configure `.env.local`
-Copy `.env.example` to `.env.local` and fill in your production credentials:
-
-```bash
-cp .env.example .env.local
-```
+Create `.env.local` and fill in your production credentials.
 
 Generate Web Push VAPID keys:
 ```bash
