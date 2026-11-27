@@ -29,7 +29,7 @@ export function buildTinocleanEmailHtml(options: {
   ctaUrl?: string;
   footerNote?: string;
 }): string {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://toon-laundry.vercel.app";
   const cta =
     options.ctaLabel && options.ctaUrl
       ? `<div style="margin:24px 0;"><a href="${options.ctaUrl}" style="display:inline-block;background:linear-gradient(135deg,#264099,#02A1DB);color:#ffffff;text-decoration:none;font-weight:600;padding:12px 24px;border-radius:12px;">${options.ctaLabel}</a></div>`

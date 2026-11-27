@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
       </table>
     `,
     ctaLabel: "Open Admin Reports",
-    ctaUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/tc-ops-m9x4k7p2/reports`,
+    ctaUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://toon-laundry.vercel.app"}/tc-ops-m9x4k7p2/reports`,
   });
 
   const res = await sendEmail({

@@ -4,6 +4,15 @@ Responsive installable web app (PWA) for **Tinoclean Laundry (UPSA)** built with
 
 ---
 
+## Live URLs (`https://toon-laundry.vercel.app`)
+
+- **Customer Portal**: https://toon-laundry.vercel.app
+- **Customer Login**: https://toon-laundry.vercel.app/auth/login
+- **Private Admin & Staff Login**: https://toon-laundry.vercel.app/tc-ops-m9x4k7p2/login
+- **Private Admin & Staff Dashboard**: https://toon-laundry.vercel.app/tc-ops-m9x4k7p2
+
+---
+
 ## 1. Confirmed Business Rules Implemented
 
 - **Live Production Build Only**: Every screen reads and writes real data in Supabase. No demo mode, fake logins, or sample data fallback. If environment variables are missing, the app displays a clear setup error screen.
