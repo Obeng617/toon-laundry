@@ -71,7 +71,8 @@ export const ORDER_STATUS_META: Record<OrderStatus, StatusMeta> = {
     label: "Ready for collection",
     shortLabel: "Ready",
     description: "Laundry is ready for customer collection.",
-    customerMessage: (tag) => `Great news! Order ${tag} is ready for collection. Bring your tag number.`,
+    customerMessage: (tag) =>
+      `Great news! Your laundry for ${tag} is freshly cleaned, pressed, and ready for collection. Please bring your tag number when coming to pick it up. Thank you for choosing Tinoclean Laundry.`,
     badgeClass: "bg-emerald-50 text-emerald-700 border-emerald-200",
   },
   out_for_delivery: {
@@ -79,7 +80,8 @@ export const ORDER_STATUS_META: Record<OrderStatus, StatusMeta> = {
     label: "Out for delivery",
     shortLabel: "Delivering",
     description: "Laundry has been dispatched for delivery.",
-    customerMessage: (tag) => `Order ${tag} is out for delivery! Please have cash or Mobile Money ready.`,
+    customerMessage: (tag) =>
+      `Your laundry for ${tag} is completely done — freshly cleaned, neatly folded, and now out for delivery to you! Please have Cash or MTN Mobile Money ready upon arrival. Thank you for choosing Tinoclean Laundry.`,
     badgeClass: "bg-teal-50 text-teal-700 border-teal-200",
   },
   completed: {
@@ -87,7 +89,8 @@ export const ORDER_STATUS_META: Record<OrderStatus, StatusMeta> = {
     label: "Completed / Delivered",
     shortLabel: "Completed",
     description: "Customer has received the laundry and settled payment.",
-    customerMessage: (tag) => `Order ${tag} is complete. Thank you for choosing Tinoclean!`,
+    customerMessage: (tag) =>
+      `Your order ${tag} is officially complete and delivered! All your garments have been cared for and settled. Thank you for trusting Tinoclean Laundry — we look forward to serving you again soon.`,
     badgeClass: "bg-green-100 text-green-800 border-green-300",
   },
   rejected: {

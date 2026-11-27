@@ -187,17 +187,17 @@ export default function HomePage() {
                 href={`/orders/${latestOrder.id}`}
                 className="block rounded-2xl bg-[#F5F9FA] hover:bg-[#edf6fc] border border-slate-200/70 p-4 transition space-y-3"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-xs font-bold text-slate-500">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-slate-500 truncate">
                       {getFulfilmentLabel(latestOrder.fulfilmentMethod)}
                     </div>
-                    <div className="text-xl font-black text-[#0B2049] mt-0.5">
+                    <div className="text-lg sm:text-xl font-black text-[#0B2049] mt-0.5 whitespace-nowrap">
                       {latestOrder.tagNumber}
                     </div>
                   </div>
                   <span
-                    className={`rounded-full border px-3 py-1 text-xs font-bold ${
+                    className={`rounded-full border px-2.5 sm:px-3 py-1 text-[11px] sm:text-xs font-bold whitespace-nowrap shrink-0 ${
                       ORDER_STATUS_META[latestOrder.status].badgeClass
                     }`}
                   >
@@ -238,18 +238,24 @@ export default function HomePage() {
               </div>
             )}
 
-            <div className="grid grid-cols-3 gap-2.5 pt-1">
-              <div className="rounded-xl bg-[#F6FFFF] border border-sky-100 p-2.5 text-center">
+            <div className="grid grid-cols-3 gap-2 pt-1">
+              <div className="rounded-xl bg-[#F6FFFF] border border-sky-100 p-2 sm:p-2.5 text-center">
                 <Truck className="w-4 h-4 text-[#02A1DB] mx-auto" />
-                <div className="text-[11px] font-bold text-[#0B2049] mt-1">Free Pickup/Delivery</div>
+                <div className="text-[10.5px] sm:text-[11px] font-bold text-[#0B2049] mt-1 leading-tight">
+                  Free Pickup &amp; Delivery
+                </div>
               </div>
-              <div className="rounded-xl bg-[#F6FFFF] border border-sky-100 p-2.5 text-center">
+              <div className="rounded-xl bg-[#F6FFFF] border border-sky-100 p-2 sm:p-2.5 text-center">
                 <ShieldCheck className="w-4 h-4 text-[#264099] mx-auto" />
-                <div className="text-[11px] font-bold text-[#0B2049] mt-1">Pay on Delivery</div>
+                <div className="text-[10.5px] sm:text-[11px] font-bold text-[#0B2049] mt-1 leading-tight">
+                  Pay on Delivery
+                </div>
               </div>
-              <div className="rounded-xl bg-[#F6FFFF] border border-sky-100 p-2.5 text-center">
+              <div className="rounded-xl bg-[#F6FFFF] border border-sky-100 p-2 sm:p-2.5 text-center">
                 <Award className="w-4 h-4 text-emerald-600 mx-auto" />
-                <div className="text-[11px] font-bold text-[#0B2049] mt-1">10% Off 4th Wash</div>
+                <div className="text-[10.5px] sm:text-[11px] font-bold text-[#0B2049] mt-1 leading-tight">
+                  10% Off 4th Wash
+                </div>
               </div>
             </div>
           </div>
