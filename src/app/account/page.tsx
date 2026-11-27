@@ -193,35 +193,29 @@ export default function AccountPage() {
               {currentUser.email} • Role: <strong className="uppercase">{currentUser.role}</strong>
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            {(currentUser.role === "admin" || currentUser.role === "staff") && (
+          {currentUser.role === "admin" || currentUser.role === "staff" ? (
+            <div className="flex items-center gap-2">
               <Link href="/tc-ops-m9x4k7p2" className="btn-tino-secondary text-xs px-3.5 py-2">
                 <Shield className="w-4 h-4" />
                 Admin Dashboard
               </Link>
-            )}
-            <button
-              type="button"
-              onClick={signOut}
-              className="rounded-xl border border-slate-200 bg-white hover:bg-red-50 hover:text-red-600 px-3.5 py-2 text-xs font-bold text-slate-600 inline-flex items-center gap-1.5 cursor-pointer"
-            >
-              <LogOut className="w-4 h-4" />
-              Sign out
-            </button>
-          </div>
+            </div>
+          ) : null}
         </div>
 
         {/* Loyalty & Referral Discounts Card (Section 3 & 6.1) */}
         {currentUser.role === "customer" && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="card-tino p-5 space-y-3 bg-gradient-to-br from-[#eff8fd] to-white border border-sky-200/70">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 font-extrabold text-[#0B2049]">
-                  <Award className="w-5 h-5 text-[#264099]" />
-                  Loyalty Discount ({settings.discountPercent}% Off)
+              <div className="flex items-center justify-between gap-2 flex-nowrap">
+                <div className="flex items-center gap-1.5 min-w-0 font-extrabold text-sm sm:text-base text-[#0B2049]">
+                  <Award className="w-4 h-4 sm:w-5 sm:h-5 text-[#264099] shrink-0" />
+                  <span className="truncate">
+                    Loyalty Discount ({settings.discountPercent}% Off)
+                  </span>
                 </div>
-                <span className="rounded-full bg-[#264099] text-white px-2.5 py-0.5 text-xs font-extrabold">
-                  {streak} / {washesRequired} washes
+                <span className="shrink-0 whitespace-nowrap rounded-full bg-[#264099] text-white px-2.5 py-0.5 text-[11px] sm:text-xs font-extrabold">
+                  {streak}/{washesRequired} washes
                 </span>
               </div>
 
@@ -478,6 +472,17 @@ export default function AccountPage() {
             {savedMsg && <span className="text-xs font-bold text-emerald-600">{savedMsg}</span>}
           </div>
         </form>
+
+        <div className="flex justify-center pt-2 pb-4">
+          <button
+            type="button"
+            onClick={signOut}
+            className="rounded-xl border border-slate-200 bg-white hover:bg-red-50 hover:text-red-600 px-6 py-2.5 text-sm font-bold text-slate-600 inline-flex items-center gap-2 shadow-xs transition cursor-pointer"
+          >
+            <LogOut className="w-4 h-4" />
+            Sign out
+          </button>
+        </div>
       </div>
     </AppShell>
   );

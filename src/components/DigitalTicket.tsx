@@ -241,17 +241,19 @@ export function DigitalTicket({
     <div className="space-y-4">
       <div className="card-tino print-ticket overflow-hidden max-w-md mx-auto bg-white border border-slate-200">
         {/* Ticket Header */}
-        <div className="bg-tino-gradient px-6 py-5 text-white text-center relative">
+        <div className="bg-tino-gradient px-6 py-5 text-white text-center space-y-1">
           {isPaid && (
-            <span className="absolute top-3.5 right-3.5 rounded-full bg-emerald-400 text-[#0B2049] px-3 py-0.5 text-xs font-extrabold tracking-wider uppercase shadow">
-              PAID
-            </span>
+            <div className="flex justify-end -mt-1 mb-1">
+              <span className="rounded-full bg-emerald-400 text-[#0B2049] px-3 py-0.5 text-xs font-extrabold tracking-wider uppercase shadow">
+                PAID
+              </span>
+            </div>
           )}
           <div className="text-xs font-bold tracking-[0.2em] uppercase text-sky-100">
             {settings.businessName}
           </div>
-          <div className="text-3xl font-extrabold tracking-tight mt-1">{order.tagNumber}</div>
-          <div className="text-xs text-sky-100 mt-1">
+          <div className="text-3xl font-extrabold tracking-tight">{order.tagNumber}</div>
+          <div className="text-xs text-sky-100">
             {isPaid ? "Official Digital Receipt" : "Digital Laundry Ticket • Pay on Delivery/Collection"}
           </div>
         </div>

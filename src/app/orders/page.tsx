@@ -134,8 +134,10 @@ export default function OrdersPage() {
                   className="card-tino p-5 hover:border-sky-300 hover:shadow-md transition space-y-3.5 block"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="text-lg font-black text-[#0B2049]">{order.tagNumber}</div>
+                    <div className="min-w-0">
+                      <div className="text-lg font-black text-[#0B2049] truncate">
+                        {order.tagNumber}
+                      </div>
                       <div className="text-xs text-slate-500 font-medium">
                         {getFulfilmentLabel(order.fulfilmentMethod)} •{" "}
                         {new Date(order.createdAt).toLocaleDateString("en-GB", {
@@ -147,7 +149,7 @@ export default function OrdersPage() {
                       </div>
                     </div>
                     <span
-                      className={`rounded-full border px-3 py-1 text-[11px] font-bold ${meta.badgeClass}`}
+                      className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-[11px] font-bold ${meta.badgeClass}`}
                     >
                       {meta.label}
                     </span>

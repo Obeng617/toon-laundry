@@ -330,7 +330,7 @@ function AdminOrdersContent() {
                     </div>
                   </div>
                   <span
-                    className={`rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${
+                    className={`shrink-0 whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${
                       ORDER_STATUS_META[o.status].badgeClass
                     }`}
                   >

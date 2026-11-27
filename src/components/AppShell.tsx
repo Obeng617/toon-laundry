@@ -306,7 +306,7 @@ export function AppShell({
 
             <Link
               href="/notifications"
-              className="relative w-10 h-10 rounded-xl bg-[#F5F9FA] hover:bg-sky-50 flex items-center justify-center text-[#0B2049] transition"
+              className="hidden md:flex relative w-10 h-10 rounded-xl bg-[#F5F9FA] hover:bg-sky-50 items-center justify-center text-[#0B2049] transition"
               aria-label="Notifications"
             >
               <Bell className="w-5 h-5" />

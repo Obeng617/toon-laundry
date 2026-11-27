@@ -45,7 +45,7 @@ export default function OrderDetailPage() {
             Back to My Orders
           </Link>
           <span
-            className={`rounded-full border px-3 py-1 text-xs font-bold ${
+            className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1 text-xs font-bold ${
               ORDER_STATUS_META[order.status].badgeClass
             }`}
           >

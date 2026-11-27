@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
-import { Bell, BellRing, CheckCheck, Mail, Volume2, VolumeX } from "lucide-react";
+import { Bell, CheckCheck, Volume2, VolumeX } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { InstallAppBanner } from "@/components/InstallAppBanner";
 import { useApp } from "@/context/AppContext";
-import { playTinocleanTone, subscribeToWebPush } from "@/lib/pwa";
+import { playTinocleanTone } from "@/lib/pwa";
 
 export default function NotificationsPage() {
   const {
@@ -18,8 +18,6 @@ export default function NotificationsPage() {
     updateProfile,
   } = useApp();
 
-  const [pushMessage, setPushMessage] = useState("");
-  const [testPushBusy, setTestPushBusy] = useState(false);
   const mode =
     currentUser?.role === "admin" || currentUser?.role === "staff" ? "admin" : "customer";
 
@@ -29,45 +27,6 @@ export default function NotificationsPage() {
       markAllNotificationsRead();
     }
   }, [currentUser?.id, unreadCount, markAllNotificationsRead]);
-
-  const handleAdminTestPush = async () => {
-    if (!currentUser || currentUser.role !== "admin") return;
-    setTestPushBusy(true);
-    setPushMessage("");
-    try {
-      const res = await fetch("/api/admin/push/test", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ actorId: currentUser.id, badgeCount: 3 }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
-        setPushMessage(data.error || "Test push failed.");
-      } else {
-        const details = (data.results || [])
-          .map((r: { endpointHost: string; statusCode?: number; ok: boolean }) => `${r.endpointHost} (HTTP ${r.statusCode || "?"})`)
-          .join(", ");
-        setPushMessage(
-          data.pushSent > 0
-            ? `Test push sent with badge=3! Delivered to: ${details}`
-            : data.message || `No push delivered. ${details}`
-        );
-      }
-    } catch {
-      setPushMessage("Network error while sending test push.");
-    } finally {
-      setTestPushBusy(false);
-    }
-  };
-
-  const handleEnablePush = async () => {
-    if (!currentUser) return;
-    const res = await subscribeToWebPush(currentUser.id);
-    setPushMessage(res.message);
-    if (res.ok) {
-      await updateProfile({ pushNotificationsEnabled: true });
-    }
-  };
 
   return (
     <AppShell mode={mode}>
@@ -88,17 +47,6 @@ export default function NotificationsPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {currentUser?.role === "admin" && (
-              <button
-                type="button"
-                disabled={testPushBusy}
-                onClick={handleAdminTestPush}
-                className="btn-tino-secondary text-xs px-3.5 py-2"
-              >
-                <BellRing className="w-3.5 h-3.5" />
-                {testPushBusy ? "Sending..." : "Send test push (Badge: 3)"}
-              </button>
-            )}
             {unreadCount > 0 && (
               <button
                 type="button"
@@ -112,27 +60,13 @@ export default function NotificationsPage() {
           </div>
         </div>
 
-        {/* Notification & Sound Controls (Section 8.1 - 8.4) */}
+        {/* Sound Control (Section 8.1 - 8.4) */}
         {currentUser && (
           <div className="card-tino p-4 space-y-3">
             <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
               Preferences
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              <button
-                type="button"
-                onClick={handleEnablePush}
-                className="rounded-xl border border-slate-200 bg-[#F5F9FA] hover:bg-[#edf6fc] px-3.5 py-2.5 text-left transition cursor-pointer"
-              >
-                <div className="flex items-center gap-2 text-xs font-bold text-[#0B2049]">
-                  <Bell className="w-4 h-4 text-[#264099]" />
-                  Web Push Alerts
-                </div>
-                <div className="text-[11px] text-slate-500 mt-0.5">
-                  Enable browser push &amp; app icon badge
-                </div>
-              </button>
-
+            <div>
               <button
                 type="button"
                 onClick={() => {
@@ -140,7 +74,7 @@ export default function NotificationsPage() {
                   updateProfile({ soundEnabled: next });
                   if (next) playTinocleanTone(true);
                 }}
-                className="rounded-xl border border-slate-200 bg-[#F5F9FA] hover:bg-[#edf6fc] px-3.5 py-2.5 text-left transition cursor-pointer"
+                className="w-full sm:w-auto rounded-xl border border-slate-200 bg-[#F5F9FA] hover:bg-[#edf6fc] px-4 py-2.5 text-left transition cursor-pointer"
               >
                 <div className="flex items-center gap-2 text-xs font-bold text-[#0B2049]">
                   {currentUser.soundEnabled ? (
@@ -154,30 +88,7 @@ export default function NotificationsPage() {
                   Plays 2.2s chime in-app
                 </div>
               </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  updateProfile({
-                    emailNotificationsEnabled: !currentUser.emailNotificationsEnabled,
-                  })
-                }
-                className="rounded-xl border border-slate-200 bg-[#F5F9FA] hover:bg-[#edf6fc] px-3.5 py-2.5 text-left transition cursor-pointer"
-              >
-                <div className="flex items-center gap-2 text-xs font-bold text-[#0B2049]">
-                  <Mail className="w-4 h-4 text-[#02A1DB]" />
-                  Email Updates: {currentUser.emailNotificationsEnabled ? "On" : "Off"}
-                </div>
-                <div className="text-[11px] text-slate-500 mt-0.5">
-                  Order status copies via Google SMTP
-                </div>
-              </button>
             </div>
-            {pushMessage && (
-              <p className="text-xs font-semibold text-[#264099] bg-sky-50 rounded-xl px-3 py-2">
-                {pushMessage}
-              </p>
-            )}
           </div>
         )}
 
