@@ -2,17 +2,6 @@
 
 Responsive installable web app (PWA) for **Tinoclean Laundry (UPSA)** built with **Next.js (App Router, TypeScript)**, **Tailwind CSS**, **Supabase (PostgreSQL, Auth, RLS, Realtime)**, **Web Push (VAPID + Badging API)**, and **Google SMTP**.
 
----
-
-## Live URLs (`https://toon-laundry.vercel.app`)
-
-- **Customer Portal**: https://toon-laundry.vercel.app
-- **Customer Login**: https://toon-laundry.vercel.app/auth/login
-- **Private Admin & Staff Login**: https://toon-laundry.vercel.app/tc-ops-m9x4k7p2/login
-- **Private Admin & Staff Dashboard**: https://toon-laundry.vercel.app/tc-ops-m9x4k7p2
-
----
-
 ## 1. Confirmed Business Rules Implemented
 
 - **Live Production Build Only**: Every screen reads and writes real data in Supabase. No demo mode, fake logins, or sample data fallback. If environment variables are missing, the app displays a clear setup error screen.
@@ -57,13 +46,7 @@ Generate Web Push VAPID keys:
 npx web-push generate-vapid-keys
 ```
 
-### Step 2: Run Supabase SQL Migration
-Open your **Supabase Dashboard → SQL Editor** and execute:
-- [`supabase/migrations/001_initial_schema.sql`](./supabase/migrations/001_initial_schema.sql)
-
-This creates all tables, sequential tag generator (`order_tag_seq`), Row Level Security (RLS) policies, the 4 services, the `1.0 kg` to `10.0 kg` half-kilogram tariff table, and business settings (`0551750854`, `MARTIN`, `UPSA`, `Mon–Sat 7:30 am – 7:30 pm`).
-
-### Step 3: Run & Build
+### Step 2: Run & Build
 ```bash
 pnpm run dev
 pnpm run build
