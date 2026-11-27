@@ -31,6 +31,7 @@ export default function AccountPage() {
 
   // Section 8.6: UPSA Student Email OTP verification state
   const [upsaEmail, setUpsaEmail] = useState(currentUser?.upsaEmail || "");
+  const [pendingUpsaEmail, setPendingUpsaEmail] = useState("");
   const [otpStep, setOtpStep] = useState<"idle" | "code">("idle");
   const [otpCode, setOtpCode] = useState("");
   const [cooldown, setCooldown] = useState(0);
@@ -43,7 +44,9 @@ export default function AccountPage() {
       setFullName(currentUser.fullName);
       setPhone(currentUser.phone);
       setDefaultAddress(currentUser.defaultAddress || "");
-      setUpsaEmail(currentUser.upsaEmail || "");
+      if (currentUser.upsaEmail) {
+        setUpsaEmail(currentUser.upsaEmail);
+      }
     }
   }, [currentUser]);
 
@@ -121,6 +124,9 @@ export default function AccountPage() {
         setSvError(data.error || "Could not send verification code.");
         return;
       }
+      const normalized = parsed.normalizedEmail || upsaEmail.trim().toLowerCase();
+      setUpsaEmail(normalized);
+      setPendingUpsaEmail(normalized);
       setOtpStep("code");
       setCooldown(data.resendCooldownSeconds || 60);
     } catch {
@@ -133,15 +139,21 @@ export default function AccountPage() {
   const handleVerifyUpsaOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setSvError("");
+    const targetEmail = (pendingUpsaEmail || upsaEmail).trim().toLowerCase();
+    if (!targetEmail) {
+      setOtpStep("idle");
+      setSvError("Please enter your @upsamail.edu.gh email and request a new OTP.");
+      return;
+    }
     setSvLoading(true);
     try {
       const res = await fetch("/api/auth/otp/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: upsaEmail,
+          email: targetEmail,
           purpose: "upsa_student",
-          code: otpCode,
+          code: otpCode.trim(),
           currentUserId: currentUser.id,
         }),
       });
@@ -151,6 +163,7 @@ export default function AccountPage() {
         return;
       }
       setSvSuccess("UPSA Student email verified! Student tariff rate is now active for 12 months.");
+      setPendingUpsaEmail("");
       setOtpStep("idle");
       setOtpCode("");
       await refreshData();

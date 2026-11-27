@@ -5,7 +5,7 @@ import { buildOtpEmail, sendEmail } from "@/lib/server/email";
 import { getSupabaseAdmin } from "@/lib/server/supabase";
 
 const RequestSchema = z.object({
-  email: z.string().email("Please enter a valid email address."),
+  email: z.string().trim().email("Please enter a valid email address."),
   purpose: z.enum(["signup", "password_reset", "upsa_student"]),
   currentUserId: z.string().optional(),
 });

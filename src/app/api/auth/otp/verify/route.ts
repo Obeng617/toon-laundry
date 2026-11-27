@@ -6,7 +6,7 @@ import { parseUpsaStudentEmail } from "@/lib/pricing";
 import { buildTinocleanEmailHtml, sendEmail } from "@/lib/server/email";
 
 const VerifySchema = z.object({
-  email: z.string().email(),
+  email: z.string().trim().email("Please enter a valid email address."),
   purpose: z.enum(["signup", "password_reset", "upsa_student"]),
   code: z.string().regex(/^\d{6}$/, "Enter the 6-digit verification code."),
   fullName: z.string().optional(),
