@@ -1,0 +1,138 @@
+@import "tailwindcss";
+
+:root {
+  --tino-royal: #264099;
+  --tino-sky: #02A1DB;
+  --tino-navy: #0B2049;
+  --tino-yellow: #FFD21F;
+  --tino-badge: #FF4D4D;
+  --tino-bg: #F5F9FA;
+  --tino-bg-soft: #F6FFFF;
+  --tino-hero-from: #83B2C7;
+  --tino-hero-to: #AFC4CF;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  background-color: var(--tino-bg);
+  color: var(--tino-navy);
+  font-family: var(--font-jakarta), "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.bg-tino-gradient {
+  background: linear-gradient(135deg, #264099 0%, #02A1DB 100%);
+}
+
+.bg-tino-gradient-hover:hover {
+  background: linear-gradient(135deg, #1f3582 0%, #028ec2 100%);
+}
+
+.bg-tino-hero {
+  background: linear-gradient(135deg, #83B2C7 0%, #AFC4CF 100%);
+}
+
+.card-tino {
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 4px 20px rgba(11, 32, 73, 0.05);
+  border: 1px solid rgba(38, 64, 153, 0.06);
+}
+
+.input-tino {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #d7e4ec;
+  background-color: #f8fbfc;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.9375rem;
+  color: #0B2049;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.input-tino.pl-10 {
+  padding-left: 2.65rem;
+}
+
+.input-tino.pl-8 {
+  padding-left: 2.2rem;
+}
+
+.input-tino.pr-10 {
+  padding-right: 2.65rem;
+}
+
+.input-tino:focus {
+  outline: none;
+  border-color: #02A1DB;
+  background-color: #ffffff;
+  box-shadow: 0 0 0 3px rgba(2, 161, 219, 0.15);
+}
+
+.btn-tino-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 14px;
+  padding: 0.75rem 1.25rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(135deg, #264099 0%, #02A1DB 100%);
+  box-shadow: 0 6px 16px rgba(38, 64, 153, 0.22);
+  transition: transform 0.12s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  cursor: pointer;
+}
+
+.btn-tino-primary:hover {
+  box-shadow: 0 8px 20px rgba(38, 64, 153, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-tino-primary:active {
+  transform: translateY(0);
+}
+
+.btn-tino-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-tino-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 14px;
+  padding: 0.7rem 1.15rem;
+  font-weight: 600;
+  color: #264099;
+  background: #edf5fb;
+  border: 1px solid #d5e6f5;
+  transition: background-color 0.15s ease;
+  cursor: pointer;
+}
+
+.btn-tino-secondary:hover {
+  background: #dfeef9;
+}
+
+@media print {
+  body {
+    background: #ffffff !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-ticket {
+    box-shadow: none !important;
+    border: 2px solid #0B2049 !important;
+    margin: 0 auto !important;
+    max-width: 420px !important;
+  }
+}
