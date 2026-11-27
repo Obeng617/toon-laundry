@@ -2,7 +2,12 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { buildOrderItemsAndTotals } from "@/lib/pricing";
-import { playTinocleanTone, registerServiceWorker, syncUnreadBadges } from "@/lib/pwa";
+import {
+  playTinocleanTone,
+  registerServiceWorker,
+  syncExistingPushSubscription,
+  syncUnreadBadges,
+} from "@/lib/pwa";
 import { getBrowserSupabase } from "@/lib/supabase-browser";
 import {
   AppNotification,
@@ -507,11 +512,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       )
       .subscribe();
 
+    const onSwMessage = (event: MessageEvent) => {
+      if (event.data?.type === "TINOCLEAN_PUSH_RECEIVED") {
+        refreshData();
+        const activeUser = currentUserRef.current;
+        playTinocleanTone(activeUser?.soundEnabled ?? true);
+        if (event.data.payload?.title) {
+          showToast(event.data.payload.title, event.data.payload.body || "");
+        }
+      }
+    };
+    if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.addEventListener("message", onSwMessage);
+    }
+
     return () => {
       authSub.subscription.unsubscribe();
       supabase.removeChannel(channel);
+      if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+        navigator.serviceWorker.removeEventListener("message", onSwMessage);
+      }
     };
   }, [refreshData, showToast]);
+
+  // Automatically keep Web Push subscription synced once user is signed in & permission is granted
+  useEffect(() => {
+    if (currentUser?.id) {
+      syncExistingPushSubscription(currentUser.id);
+    }
+  }, [currentUser?.id]);
 
   const userNotifications = useMemo(() => {
     if (!currentUser) return [];
@@ -795,6 +824,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
     }
 
+    if (isReceivedNow) {
+      fetch("/api/whatsapp/send-ticket", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: insertedOrder.id }),
+      }).catch(() => {});
+    }
+
     await refreshData();
     const freshOrder = orders.find((o) => o.id === insertedOrder.id) || {
       id: insertedOrder.id,
@@ -952,6 +989,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         eventKey: `${order.id}:ticket:${calc.totalActualWeightKg}`,
       });
     }
+
+    // Automatically send digital ticket to customer's WhatsApp DM if Cloud API is configured
+    fetch("/api/whatsapp/send-ticket", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId: order.id }),
+    }).catch(() => {});
 
     await refreshData();
     return { ok: true };

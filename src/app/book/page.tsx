@@ -289,7 +289,9 @@ function BookOrderForm() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1">Phone Number</label>
+              <label className="block text-xs font-bold text-slate-600 mb-1">
+                WhatsApp Phone Number
+              </label>
               <input
                 type="tel"
                 inputMode="numeric"
@@ -301,6 +303,10 @@ function BookOrderForm() {
                 placeholder="0551750854"
                 className="input-tino"
               />
+              <p className="text-[11px] font-semibold text-[#264099] mt-1">
+                Provide your active WhatsApp number — your digital ticket will be sent to you on
+                WhatsApp.
+              </p>
             </div>
           </div>
 

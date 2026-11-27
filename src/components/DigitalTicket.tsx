@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Check, Copy, Download, Printer, Share2 } from "lucide-react";
+import { Check, Copy, Download, MessageCircle, Printer, Share2 } from "lucide-react";
+import { buildTicketWhatsAppMessage, toWhatsAppNumber } from "@/lib/phone";
 import { formatCurrency } from "@/lib/pricing";
 import { BusinessSettings, LaundryOrder } from "@/lib/types";
 import { getFulfilmentLabel } from "@/lib/workflow";
@@ -181,7 +182,17 @@ export function DigitalTicket({
   };
 
   const handleShare = async () => {
-    const text = `${settings.businessName} Digital Ticket\n${order.tagNumber}\nCustomer: ${order.customerName}\nTotal: ${formatCurrency(order.totalAmount)}\nBalance Due: ${formatCurrency(order.balanceDue)}\nView Ticket: ${publicUrl}`;
+    const text = buildTicketWhatsAppMessage({
+      businessName: settings.businessName,
+      tagNumber: order.tagNumber,
+      customerName: order.customerName,
+      totalAmount: order.totalAmount,
+      balanceDue: order.balanceDue,
+      readyBy: order.readyBy,
+      ticketUrl: publicUrl,
+      momoNumber: settings.momoNumber,
+      momoAccountName: settings.momoAccountName,
+    });
     if (navigator.share) {
       try {
         await navigator.share({
@@ -195,6 +206,25 @@ export function DigitalTicket({
       }
     }
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+  };
+
+  const handleSendToCustomerWhatsApp = () => {
+    const waNumber = toWhatsAppNumber(order.customerPhone);
+    const text = buildTicketWhatsAppMessage({
+      businessName: settings.businessName,
+      tagNumber: order.tagNumber,
+      customerName: order.customerName,
+      totalAmount: order.totalAmount,
+      balanceDue: order.balanceDue,
+      readyBy: order.readyBy,
+      ticketUrl: publicUrl,
+      momoNumber: settings.momoNumber,
+      momoAccountName: settings.momoAccountName,
+    });
+    const url = waNumber
+      ? `https://wa.me/${waNumber}?text=${encodeURIComponent(text)}`
+      : `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank");
   };
 
   const handleCopyLink = async () => {
@@ -380,11 +410,19 @@ export function DigitalTicket({
           </button>
           <button
             type="button"
+            onClick={handleSendToCustomerWhatsApp}
+            className="inline-flex items-center justify-center gap-1.5 rounded-[14px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 shadow-sm transition cursor-pointer"
+          >
+            <MessageCircle className="w-4 h-4" />
+            Send to Customer WhatsApp
+          </button>
+          <button
+            type="button"
             onClick={handleShare}
             className="btn-tino-secondary text-xs px-4 py-2.5"
           >
             <Share2 className="w-4 h-4" />
-            Share WhatsApp
+            Share
           </button>
           <button
             type="button"

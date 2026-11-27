@@ -71,13 +71,15 @@ self.addEventListener("push", (event) => {
         tag: payload.tag || "tinoclean-update",
         data: { url: payload.url || "/notifications", unreadCount: badgeCount },
         vibrate: [120, 60, 120],
+        silent: false,
         renotify: true,
       }),
       (async () => {
-        if ("setAppBadge" in self.navigator && typeof badgeCount === "number") {
+        if ("setAppBadge" in self.navigator) {
           try {
-            if (badgeCount > 0) {
-              await self.navigator.setAppBadge(badgeCount);
+            const count = typeof badgeCount === "number" ? badgeCount : 1;
+            if (count > 0) {
+              await self.navigator.setAppBadge(count);
             } else {
               await self.navigator.clearAppBadge();
             }

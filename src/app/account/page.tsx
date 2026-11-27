@@ -440,7 +440,9 @@ export default function AccountPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1">Phone Number</label>
+              <label className="block text-xs font-bold text-slate-600 mb-1">
+                WhatsApp Phone Number
+              </label>
               <input
                 type="tel"
                 inputMode="numeric"
@@ -451,6 +453,10 @@ export default function AccountPage() {
                 placeholder="0551750854"
                 className="input-tino"
               />
+              <p className="text-[11px] font-semibold text-[#264099] mt-1">
+                Your digital laundry ticket is sent to this WhatsApp number once you provide the
+                right number.
+              </p>
             </div>
           </div>
           <div>
