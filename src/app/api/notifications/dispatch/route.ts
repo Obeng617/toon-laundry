@@ -48,15 +48,31 @@ export async function POST(req: NextRequest) {
     }
 
     let pushSent = 0;
+    const pushResults: Array<{
+      endpointHost: string;
+      statusCode?: number;
+      ok: boolean;
+      deleted?: boolean;
+      error?: string;
+    }> = [];
+
     const admin = getSupabaseAdmin();
     if (admin && data.userId) {
       const { data: subs } = await admin
         .from("toon_push_subscriptions")
-        .select("endpoint, p256dh, auth")
+        .select("id, endpoint, p256dh, auth")
         .eq("user_id", data.userId);
 
       if (subs && subs.length > 0) {
         for (const sub of subs) {
+          const endpointHost = (() => {
+            try {
+              return new URL(sub.endpoint).host;
+            } catch {
+              return "unknown";
+            }
+          })();
+
           const res = await sendWebPush(sub, {
             title: data.title,
             body: data.body,
@@ -64,7 +80,34 @@ export async function POST(req: NextRequest) {
             tag: data.eventKey,
             unreadCount: data.unreadCount,
           });
+
+          console.log("[Tinoclean Push Dispatch]", {
+            userId: data.userId,
+            endpointHost,
+            ok: res.ok,
+            statusCode: res.statusCode,
+            error: res.error,
+          });
+
+          let deleted = false;
+          if (!res.ok && (res.statusCode === 404 || res.statusCode === 410)) {
+            await admin.from("toon_push_subscriptions").delete().eq("id", sub.id);
+            deleted = true;
+            console.log("[Tinoclean Push Cleanup] Deleted stale subscription", {
+              id: sub.id,
+              endpointHost,
+              statusCode: res.statusCode,
+            });
+          }
+
           if (res.ok) pushSent += 1;
+          pushResults.push({
+            endpointHost,
+            statusCode: res.statusCode,
+            ok: res.ok,
+            deleted,
+            error: res.error,
+          });
         }
       }
     }
@@ -73,6 +116,7 @@ export async function POST(req: NextRequest) {
       ok: true,
       email: emailStatus,
       pushSent,
+      pushResults,
     });
   } catch (err) {
     console.error("[Notification Dispatch Error]", err);

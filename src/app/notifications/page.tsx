@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Bell, CheckCheck, Mail, Volume2, VolumeX } from "lucide-react";
+import { Bell, BellRing, CheckCheck, Mail, Volume2, VolumeX } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { InstallAppBanner } from "@/components/InstallAppBanner";
 import { useApp } from "@/context/AppContext";
@@ -19,8 +19,39 @@ export default function NotificationsPage() {
   } = useApp();
 
   const [pushMessage, setPushMessage] = useState("");
+  const [testPushBusy, setTestPushBusy] = useState(false);
   const mode =
     currentUser?.role === "admin" || currentUser?.role === "staff" ? "admin" : "customer";
+
+  const handleAdminTestPush = async () => {
+    if (!currentUser || currentUser.role !== "admin") return;
+    setTestPushBusy(true);
+    setPushMessage("");
+    try {
+      const res = await fetch("/api/admin/push/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ actorId: currentUser.id, badgeCount: 3 }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setPushMessage(data.error || "Test push failed.");
+      } else {
+        const details = (data.results || [])
+          .map((r: { endpointHost: string; statusCode?: number; ok: boolean }) => `${r.endpointHost} (HTTP ${r.statusCode || "?"})`)
+          .join(", ");
+        setPushMessage(
+          data.pushSent > 0
+            ? `Test push sent with badge=3! Delivered to: ${details}`
+            : data.message || `No push delivered. ${details}`
+        );
+      }
+    } catch {
+      setPushMessage("Network error while sending test push.");
+    } finally {
+      setTestPushBusy(false);
+    }
+  };
 
   const handleEnablePush = async () => {
     if (!currentUser) return;
@@ -49,16 +80,29 @@ export default function NotificationsPage() {
             </h1>
           </div>
 
-          {unreadCount > 0 && (
-            <button
-              type="button"
-              onClick={markAllNotificationsRead}
-              className="btn-tino-primary text-xs px-3.5 py-2 self-start"
-            >
-              <CheckCheck className="w-3.5 h-3.5" />
-              Mark all read
-            </button>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {currentUser?.role === "admin" && (
+              <button
+                type="button"
+                disabled={testPushBusy}
+                onClick={handleAdminTestPush}
+                className="btn-tino-secondary text-xs px-3.5 py-2"
+              >
+                <BellRing className="w-3.5 h-3.5" />
+                {testPushBusy ? "Sending..." : "Send test push (Badge: 3)"}
+              </button>
+            )}
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                onClick={markAllNotificationsRead}
+                className="btn-tino-primary text-xs px-3.5 py-2 self-start"
+              >
+                <CheckCheck className="w-3.5 h-3.5" />
+                Mark all read
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Notification & Sound Controls (Section 8.1 - 8.4) */}
