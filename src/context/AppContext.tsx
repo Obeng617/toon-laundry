@@ -593,6 +593,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             userId: uid,
+            targetRole:
+              recipient?.role === "admin" || recipient?.role === "staff"
+                ? "staff"
+                : "customer",
             toEmail: recipient?.email,
             emailEnabled: recipient?.emailNotificationsEnabled ?? true,
             title: params.title,

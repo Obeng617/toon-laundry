@@ -6,6 +6,7 @@ import { getSupabaseAdmin } from "@/lib/server/supabase";
 
 const DispatchSchema = z.object({
   userId: z.string().optional(),
+  targetRole: z.enum(["customer", "staff"]).default("customer"),
   toEmail: z.string().email().optional(),
   emailEnabled: z.boolean().default(true),
   title: z.string().min(1),
@@ -13,7 +14,7 @@ const DispatchSchema = z.object({
   orderId: z.string().optional(),
   tagNumber: z.string().optional(),
   eventKey: z.string().min(1),
-  unreadCount: z.number().int().min(0).default(1),
+  unreadCount: z.number().int().min(0).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -25,20 +26,74 @@ export async function POST(req: NextRequest) {
     }
 
     const data = parsed.data;
+    const admin = getSupabaseAdmin();
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://toon-laundry.vercel.app";
+
+    // Resolve the authoritative recipient using the Supabase server key (service role)
+    let targetUserId = data.userId;
+    let targetEmail = data.toEmail;
+    let emailEnabled = data.emailEnabled;
+    let pushEnabled = true;
+    let tagNumber = data.tagNumber;
+
+    if (admin && data.orderId && data.targetRole === "customer") {
+      const { data: orderRow } = await admin
+        .from("toon_orders")
+        .select("customer_id, tag_number, customer_email")
+        .eq("id", data.orderId)
+        .maybeSingle();
+
+      if (orderRow?.customer_id) {
+        targetUserId = orderRow.customer_id;
+      }
+      if (orderRow?.tag_number) {
+        tagNumber = orderRow.tag_number;
+      }
+      if (!targetEmail && orderRow?.customer_email) {
+        targetEmail = orderRow.customer_email;
+      }
+    }
+
+    if (admin && targetUserId) {
+      const { data: profile } = await admin
+        .from("toon_profiles")
+        .select("email, email_notifications_enabled, push_notifications_enabled")
+        .eq("id", targetUserId)
+        .maybeSingle();
+
+      if (profile) {
+        if (!targetEmail && profile.email) targetEmail = profile.email;
+        emailEnabled = profile.email_notifications_enabled ?? true;
+        pushEnabled = profile.push_notifications_enabled ?? true;
+      }
+    }
+
+    // Compute exact unread count for the target user from Supabase
+    let unreadCount = data.unreadCount ?? 1;
+    if (admin && targetUserId) {
+      const { count } = await admin
+        .from("toon_notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", targetUserId)
+        .eq("is_read", false);
+      if (typeof count === "number") {
+        unreadCount = Math.max(1, count);
+      }
+    }
+
     const orderUrl = data.orderId ? `${appUrl}/orders/${data.orderId}` : `${appUrl}/notifications`;
 
     let emailStatus: { ok: boolean; error?: string } = { ok: true };
-    if (data.toEmail && data.emailEnabled) {
+    if (targetEmail && emailEnabled) {
       emailStatus = await sendEmail({
-        to: data.toEmail,
-        subject: data.tagNumber ? `${data.title} — ${data.tagNumber}` : data.title,
+        to: targetEmail,
+        subject: tagNumber ? `${data.title} — ${tagNumber}` : data.title,
         dedupeKey: data.eventKey,
         html: buildTinocleanEmailHtml({
           heading: data.title,
           bodyHtml: `<p>${data.body}</p>${
-            data.tagNumber
-              ? `<p style="margin-top:12px;">Order Reference: <strong style="color:#264099;">${data.tagNumber}</strong></p>`
+            tagNumber
+              ? `<p style="margin-top:12px;">Order Reference: <strong style="color:#264099;">${tagNumber}</strong></p>`
               : ""
           }`,
           ctaLabel: data.orderId ? "View Order & Ticket" : "Open Tinoclean",
@@ -49,6 +104,7 @@ export async function POST(req: NextRequest) {
 
     let pushSent = 0;
     const pushResults: Array<{
+      userId: string;
       endpointHost: string;
       statusCode?: number;
       ok: boolean;
@@ -56,12 +112,11 @@ export async function POST(req: NextRequest) {
       error?: string;
     }> = [];
 
-    const admin = getSupabaseAdmin();
-    if (admin && data.userId) {
+    if (admin && targetUserId && pushEnabled) {
       const { data: subs } = await admin
         .from("toon_push_subscriptions")
         .select("id, endpoint, p256dh, auth")
-        .eq("user_id", data.userId);
+        .eq("user_id", targetUserId);
 
       if (subs && subs.length > 0) {
         for (const sub of subs) {
@@ -78,11 +133,11 @@ export async function POST(req: NextRequest) {
             body: data.body,
             url: orderUrl,
             tag: data.eventKey,
-            unreadCount: data.unreadCount,
+            unreadCount,
           });
 
           console.log("[Tinoclean Push Dispatch]", {
-            userId: data.userId,
+            userId: targetUserId,
             endpointHost,
             ok: res.ok,
             statusCode: res.statusCode,
@@ -102,6 +157,7 @@ export async function POST(req: NextRequest) {
 
           if (res.ok) pushSent += 1;
           pushResults.push({
+            userId: targetUserId,
             endpointHost,
             statusCode: res.statusCode,
             ok: res.ok,
@@ -114,6 +170,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
+      targetUserId,
+      unreadCount,
       email: emailStatus,
       pushSent,
       pushResults,
