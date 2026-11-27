@@ -19,7 +19,7 @@ export function SplashScreen() {
 
     const minTimer = setTimeout(() => {
       setMinDelayDone(true);
-    }, 950);
+    }, 2400);
 
     return () => clearTimeout(minTimer);
   }, []);
@@ -31,7 +31,7 @@ export function SplashScreen() {
       sessionStorage.setItem("tc_splash_shown", "1");
       const fadeTimer = setTimeout(() => {
         setHidden(true);
-      }, 350);
+      }, 500);
       return () => clearTimeout(fadeTimer);
     }
   }, [hydrated, minDelayDone, hidden]);
@@ -41,7 +41,7 @@ export function SplashScreen() {
   return (
     <div
       aria-label="Loading Tinoclean Laundry"
-      className={`fixed inset-0 z-[100] flex flex-col items-center justify-between px-6 py-12 text-white bg-gradient-to-br from-[#0B2049] via-[#264099] to-[#02A1DB] transition-opacity duration-350 ${
+      className={`fixed inset-0 z-[100] flex flex-col items-center justify-between px-6 py-12 text-white bg-gradient-to-br from-[#0B2049] via-[#264099] to-[#02A1DB] transition-opacity duration-500 ${
         fadingOut ? "opacity-0 pointer-events-none" : "opacity-100"
       }`}
     >
