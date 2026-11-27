@@ -433,6 +433,8 @@ CREATE POLICY "toon_customers_create_own_orders" ON public.toon_orders
   FOR INSERT WITH CHECK (customer_id = auth.uid() OR public.toon_is_admin_or_staff());
 CREATE POLICY "toon_staff_update_orders" ON public.toon_orders
   FOR UPDATE USING (public.toon_is_admin_or_staff());
+CREATE POLICY "toon_admin_delete_orders" ON public.toon_orders
+  FOR DELETE USING (public.toon_is_admin());
 
 CREATE POLICY "toon_read_own_order_items" ON public.toon_order_items
   FOR SELECT USING (

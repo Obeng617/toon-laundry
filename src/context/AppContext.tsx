@@ -100,6 +100,10 @@ interface AppContextValue {
     categoryOverride?: CustomerCategory
   ) => Promise<{ ok: boolean; error?: string }>;
   assignStaff: (orderId: string, staffId: string) => Promise<void>;
+  deleteOrder: (
+    orderId: string,
+    reason?: string
+  ) => Promise<{ ok: boolean; error?: string }>;
 
   // Payments
   recordPayment: (input: {
@@ -1103,6 +1107,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await refreshData();
   };
 
+  const deleteOrder = async (orderId: string, reason?: string) => {
+    if (!currentUser || currentUser.role !== "admin") {
+      return { ok: false, error: "Only an Administrator can delete orders." };
+    }
+    try {
+      const res = await fetch("/api/admin/orders/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId,
+          actorId: currentUser.id,
+          actorName: currentUser.fullName,
+          reason: reason?.trim() || "Deleted by Admin",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        return { ok: false, error: data.error || "Failed to delete order." };
+      }
+      await refreshData();
+      return { ok: true };
+    } catch {
+      return { ok: false, error: "Network error while deleting order." };
+    }
+  };
+
   const recordPayment = async (input: {
     orderId: string;
     amount: number;
@@ -1484,6 +1514,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updateOrderStatus,
         weighAndIssueTicket,
         assignStaff,
+        deleteOrder,
         recordPayment,
         revokeOrReinstateStudent,
         adjustCustomerDiscount,

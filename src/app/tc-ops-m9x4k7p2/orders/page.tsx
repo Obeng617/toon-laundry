@@ -10,6 +10,7 @@ import {
   Scale,
   Search,
   Ticket,
+  Trash2,
   X,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
@@ -37,6 +38,7 @@ function AdminOrdersContent() {
     weighAndIssueTicket,
     updateOrderStatus,
     assignStaff,
+    deleteOrder,
     recordPayment,
   } = useApp();
 
@@ -46,6 +48,9 @@ function AdminOrdersContent() {
   const [selectedOrderId, setSelectedOrderId] = useState<string>(orders[0]?.id || "");
   const [showWalkInModal, setShowWalkInModal] = useState(searchParams.get("new") === "1");
   const [showTicketModal, setShowTicketModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   // Multi-service weigh map for selected order
   const [weighMap, setWeighMap] = useState<Record<string, string>>({});
@@ -216,6 +221,28 @@ function AdminOrdersContent() {
     }
   };
 
+  const handleConfirmDeleteOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedOrder) return;
+    setDeleting(true);
+    setActionErr("");
+    try {
+      const res = await deleteOrder(
+        selectedOrder.id,
+        deleteReason.trim() || "Deleted by Admin"
+      );
+      if (!res.ok) {
+        setActionErr(res.error || "Could not delete order.");
+        return;
+      }
+      setShowDeleteModal(false);
+      setDeleteReason("");
+      setSelectedOrderId("");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -362,6 +389,19 @@ function AdminOrdersContent() {
                       </option>
                     ))}
                   </select>
+                  {currentUser?.role === "admin" && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDeleteReason("");
+                        setShowDeleteModal(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 px-3 py-2 text-xs font-bold transition cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Delete Order
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -685,6 +725,64 @@ function AdminOrdersContent() {
             </button>
             <DigitalTicket order={selectedOrder} settings={settings} />
           </div>
+        </div>
+      )}
+
+      {/* Delete Order Confirmation Modal (Admin Only) */}
+      {showDeleteModal && selectedOrder && (
+        <div className="fixed inset-0 z-50 bg-[#0B2049]/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <form
+            onSubmit={handleConfirmDeleteOrder}
+            className="card-tino w-full max-w-md p-6 space-y-4 bg-white"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-red-600 font-extrabold text-lg">
+                <Trash2 className="w-5 h-5" />
+                Delete {selectedOrder.tagNumber}?
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              This will permanently delete <strong>{selectedOrder.tagNumber}</strong> for{" "}
+              <strong>{selectedOrder.customerName}</strong> ({formatCurrency(selectedOrder.totalAmount)})
+              along with its ticket and items. The deletion will be recorded in the audit trail.
+            </p>
+            <div>
+              <label className="block text-xs font-bold text-slate-600 mb-1">
+                Reason for deletion (Optional)
+              </label>
+              <input
+                type="text"
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+                placeholder="e.g. Duplicate booking or test order"
+                className="input-tino"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="btn-tino-secondary text-xs px-4 py-2"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={deleting}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#FF4D4D] hover:bg-red-600 text-white px-4 py-2 text-xs font-bold shadow-sm transition cursor-pointer disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                {deleting ? "Deleting..." : "Confirm Delete"}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

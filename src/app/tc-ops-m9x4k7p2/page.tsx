@@ -9,6 +9,7 @@ import {
   GraduationCap,
   PlusCircle,
   Tag,
+  Trash2,
   Wallet,
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
@@ -17,7 +18,7 @@ import { formatCurrency } from "@/lib/pricing";
 import { ORDER_STATUS_META } from "@/lib/workflow";
 
 export default function AdminOverviewPage() {
-  const { orders, payments, users } = useApp();
+  const { currentUser, orders, payments, users, deleteOrder } = useApp();
 
   const newOrders = orders.filter((o) => o.status === "order_placed").length;
   const inProgress = orders.filter((o) =>
@@ -99,6 +100,9 @@ export default function AdminOverviewPage() {
                     <th className="px-4 py-3">Weight</th>
                     <th className="px-4 py-3">Total</th>
                     <th className="px-4 py-3">Status</th>
+                    {currentUser?.role === "admin" && (
+                      <th className="px-4 py-3 text-right">Action</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -142,6 +146,27 @@ export default function AdminOverviewPage() {
                           {ORDER_STATUS_META[o.status].shortLabel}
                         </span>
                       </td>
+                      {currentUser?.role === "admin" && (
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (
+                                window.confirm(
+                                  `Delete ${o.tagNumber} (${o.customerName}) permanently?`
+                                )
+                              ) {
+                                await deleteOrder(o.id, "Deleted from Admin Overview");
+                              }
+                            }}
+                            title={`Delete ${o.tagNumber}`}
+                            className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 px-2.5 py-1 text-xs font-bold transition cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Delete
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                   {orders.length === 0 && (
