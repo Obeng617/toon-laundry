@@ -1,5 +1,5 @@
 /* Tinoclean Laundry Service Worker — PWA, Web Push & App Badging */
-const CACHE_NAME = "tinoclean-v1";
+const CACHE_NAME = "tinoclean-v2";
 const OFFLINE_ASSETS = [
   "/",
   "/manifest.webmanifest",
@@ -8,6 +8,8 @@ const OFFLINE_ASSETS = [
   "/icons/icon-512.png",
   "/sounds/tinoclean-tone.wav",
 ];
+
+let lastBadgeClearAt = 0;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -43,6 +45,35 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
+async function applySwBadge(count, closeTag) {
+  const safeCount = Math.max(0, Math.floor(Number(count || 0)));
+  if ("setAppBadge" in self.navigator) {
+    try {
+      if (safeCount > 0) {
+        await self.navigator.setAppBadge(safeCount);
+      } else {
+        await self.navigator.clearAppBadge();
+      }
+    } catch {
+      // Platform does not allow badging in this context
+    }
+  }
+
+  if (safeCount === 0 || closeTag) {
+    try {
+      const shown = await self.registration.getNotifications(
+        closeTag ? { tag: closeTag } : undefined
+      );
+      shown.forEach((n) => n.close());
+      console.log("[Tinoclean SW] Badge synced:", safeCount, "Closed notifications:", shown.length);
+    } catch {
+      // Ignore
+    }
+  } else {
+    console.log("[Tinoclean SW] Badge synced:", safeCount);
+  }
+}
+
 self.addEventListener("push", (event) => {
   let payload = {
     title: "Tinoclean Laundry",
@@ -50,6 +81,7 @@ self.addEventListener("push", (event) => {
     url: "/notifications",
     tag: "tinoclean-update",
     unreadCount: 1,
+    sentAt: Date.now(),
   };
 
   if (event.data) {
@@ -60,7 +92,14 @@ self.addEventListener("push", (event) => {
     }
   }
 
-  const badgeCount = typeof payload.unreadCount === "number" ? payload.unreadCount : undefined;
+  // Prevent an older delayed push from restoring a stale non-zero badge after user cleared it
+  const isStaleAfterClear =
+    typeof payload.sentAt === "number" && payload.sentAt < lastBadgeClearAt;
+  const badgeCount = isStaleAfterClear
+    ? 0
+    : typeof payload.unreadCount === "number"
+    ? payload.unreadCount
+    : 1;
 
   event.waitUntil(
     Promise.all([
@@ -74,20 +113,7 @@ self.addEventListener("push", (event) => {
         silent: false,
         renotify: true,
       }),
-      (async () => {
-        if ("setAppBadge" in self.navigator) {
-          try {
-            const count = typeof badgeCount === "number" ? badgeCount : 1;
-            if (count > 0) {
-              await self.navigator.setAppBadge(count);
-            } else {
-              await self.navigator.clearAppBadge();
-            }
-          } catch {
-            // Platform does not allow badging in this context
-          }
-        }
-      })(),
+      applySwBadge(badgeCount),
       self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
         clients.forEach((client) => {
           client.postMessage({
@@ -105,7 +131,15 @@ self.addEventListener("notificationclick", (event) => {
   const targetUrl = (event.notification.data && event.notification.data.url) || "/orders";
 
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+    (async () => {
+      if (targetUrl.includes("/notifications")) {
+        const shown = await self.registration.getNotifications();
+        shown.forEach((n) => n.close());
+      }
+      const clientList = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
       for (const client of clientList) {
         if ("focus" in client) {
           client.navigate(targetUrl);
@@ -115,19 +149,16 @@ self.addEventListener("notificationclick", (event) => {
       if (self.clients.openWindow) {
         return self.clients.openWindow(targetUrl);
       }
-    })
+    })()
   );
 });
 
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SET_BADGE") {
     const count = Number(event.data.count || 0);
-    if ("setAppBadge" in self.navigator) {
-      if (count > 0) {
-        self.navigator.setAppBadge(count).catch(() => {});
-      } else {
-        self.navigator.clearAppBadge().catch(() => {});
-      }
+    if (count === 0) {
+      lastBadgeClearAt = Date.now();
     }
+    event.waitUntil(applySwBadge(count, event.data.closeTag));
   }
 });

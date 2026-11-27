@@ -113,6 +113,7 @@ export function isAudioUnlocked() {
 export function syncUnreadBadges(count: number, baseTitle = "Tinoclean Laundry") {
   if (typeof window === "undefined") return;
   const safeCount = Math.max(0, Math.floor(count));
+  console.log("[Tinoclean Badge] syncUnreadBadges ->", safeCount);
 
   // Layer 1: App Icon Badging API (Window + Service Worker)
   const nav = navigator as Navigator & {
@@ -134,7 +135,11 @@ export function syncUnreadBadges(count: number, baseTitle = "Tinoclean Laundry")
       });
     }
     navigator.serviceWorker.ready
-      .then((reg) => {
+      .then(async (reg) => {
+        if (safeCount === 0) {
+          const shown = await reg.getNotifications();
+          shown.forEach((n) => n.close());
+        }
         reg.active?.postMessage({ type: "SET_BADGE", count: safeCount });
       })
       .catch(() => {});

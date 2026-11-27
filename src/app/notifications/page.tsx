@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { Bell, BellRing, CheckCheck, Mail, Volume2, VolumeX } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
@@ -22,6 +22,13 @@ export default function NotificationsPage() {
   const [testPushBusy, setTestPushBusy] = useState(false);
   const mode =
     currentUser?.role === "admin" || currentUser?.role === "staff" ? "admin" : "customer";
+
+  // Automatically mark unread notifications as read when Notifications page is opened
+  useEffect(() => {
+    if (currentUser?.id && unreadCount > 0) {
+      markAllNotificationsRead();
+    }
+  }, [currentUser?.id, unreadCount, markAllNotificationsRead]);
 
   const handleAdminTestPush = async () => {
     if (!currentUser || currentUser.role !== "admin") return;

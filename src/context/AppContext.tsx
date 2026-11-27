@@ -1515,26 +1515,66 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await refreshData();
   };
 
+  const recountAndSyncUnread = useCallback(async (userId: string) => {
+    const supabase = getBrowserSupabase();
+    if (!supabase) return 0;
+    const { count } = await supabase
+      .from("toon_notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("is_read", false);
+    const dbCount = typeof count === "number" ? count : 0;
+    console.log("[Tinoclean Badge] DB recount for", userId, "->", dbCount);
+    syncUnreadBadges(dbCount, "Tinoclean Laundry");
+    return dbCount;
+  }, []);
+
   const markNotificationRead = async (id: string) => {
     const supabase = getBrowserSupabase();
-    if (!supabase) return;
+    if (!supabase || !currentUser) return;
+    console.log("[Tinoclean Badge] Marking single notification read. Current unreadCount:", unreadCount);
     await supabase
       .from("toon_notifications")
       .update({ is_read: true, read_at: new Date().toISOString() })
       .eq("id", id);
+    await recountAndSyncUnread(currentUser.id);
     await refreshData();
   };
 
-  const markAllNotificationsRead = async () => {
+  const markAllNotificationsRead = useCallback(async () => {
     const supabase = getBrowserSupabase();
-    if (!supabase || !currentUser) return;
+    const activeUser = currentUserRef.current;
+    if (!supabase || !activeUser) return;
+    console.log("[Tinoclean Badge] Marking all notifications read for", activeUser.id);
     await supabase
       .from("toon_notifications")
       .update({ is_read: true, read_at: new Date().toISOString() })
-      .eq("user_id", currentUser.id)
+      .eq("user_id", activeUser.id)
       .eq("is_read", false);
+    await recountAndSyncUnread(activeUser.id);
     await refreshData();
-  };
+  }, [recountAndSyncUnread, refreshData]);
+
+  // Recount & clear badge whenever the app returns to focus
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleReturnToFocus = async () => {
+      if (document.visibilityState && document.visibilityState !== "visible") return;
+      const activeUser = currentUserRef.current;
+      if (!activeUser) return;
+      if (window.location.pathname.startsWith("/notifications")) {
+        await markAllNotificationsRead();
+      } else {
+        await recountAndSyncUnread(activeUser.id);
+      }
+    };
+    window.addEventListener("focus", handleReturnToFocus);
+    document.addEventListener("visibilitychange", handleReturnToFocus);
+    return () => {
+      window.removeEventListener("focus", handleReturnToFocus);
+      document.removeEventListener("visibilitychange", handleReturnToFocus);
+    };
+  }, [markAllNotificationsRead, recountAndSyncUnread]);
 
   return (
     <AppContext.Provider

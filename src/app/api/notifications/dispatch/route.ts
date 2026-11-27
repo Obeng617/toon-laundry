@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Compute exact unread count for the target user from Supabase
-    let unreadCount = data.unreadCount ?? 1;
+    let unreadCount = data.unreadCount ?? 0;
     if (admin && targetUserId) {
       const { count } = await admin
         .from("toon_notifications")
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
         .eq("user_id", targetUserId)
         .eq("is_read", false);
       if (typeof count === "number") {
-        unreadCount = Math.max(1, count);
+        unreadCount = count;
       }
     }
 
