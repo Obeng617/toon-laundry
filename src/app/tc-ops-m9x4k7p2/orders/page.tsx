@@ -143,16 +143,49 @@ function AdminOrdersContent() {
 
   const previewCalc = useMemo(() => {
     if (!selectedOrder) return null;
+    let effectiveDiscountType = selectedOrder.discountType;
+    let effectiveDiscountPercent =
+      selectedOrder.discountType !== "none"
+        ? selectedOrder.discountPercent > 0
+          ? selectedOrder.discountPercent
+          : settings.discountPercent
+        : 0;
+
+    if (effectiveDiscountType === "none" && selectedOrder.customerId) {
+      const cust = users.find((u) => u.id === selectedOrder.customerId);
+      if (cust) {
+        if (cust.completedWashesStreak >= settings.loyaltyWashesRequired) {
+          effectiveDiscountType = "loyalty";
+        } else if (cust.availableReferralDiscounts > 0) {
+          effectiveDiscountType = "referral";
+        } else if (cust.manualDiscountsAvailable > 0) {
+          effectiveDiscountType = "manual";
+        }
+        if (effectiveDiscountType !== "none") {
+          effectiveDiscountPercent = settings.discountPercent;
+        }
+      }
+    }
+
     return buildOrderItemsAndTotals({
       lines: weighLines,
       services: activeServices,
       tariffs,
       category: categoryInput,
-      discountType: selectedOrder.discountType,
-      discountPercent: selectedOrder.discountPercent || settings.discountPercent,
+      discountType: effectiveDiscountType,
+      discountPercent: effectiveDiscountPercent,
       isEstimated: false,
     });
-  }, [selectedOrder, weighLines, activeServices, tariffs, categoryInput, settings.discountPercent]);
+  }, [
+    selectedOrder,
+    users,
+    weighLines,
+    activeServices,
+    tariffs,
+    categoryInput,
+    settings.discountPercent,
+    settings.loyaltyWashesRequired,
+  ]);
 
   const handleWeigh = async (e: React.FormEvent) => {
     e.preventDefault();

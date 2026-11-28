@@ -184,9 +184,9 @@ function mapProfile(r: any): UserProfile {
     referralCode: r.referral_code || "",
     referredById: r.referred_by_id,
     referralRewardCredited: Boolean(r.referral_reward_credited),
-    completedWashesStreak: Number(r.completed_washes_streak || 0),
-    availableReferralDiscounts: Number(r.available_referral_discounts || 0),
-    manualDiscountsAvailable: Number(r.manual_discounts_available || 0),
+    completedWashesStreak: Number(r.completed_washes_streak ?? 0),
+    availableReferralDiscounts: Number(r.available_referral_discounts ?? 0),
+    manualDiscountsAvailable: Number(r.manual_discounts_available ?? 0),
     defaultAddress: r.default_address || "",
     savedAddresses: Array.isArray(r.saved_addresses) ? r.saved_addresses : [],
     emailNotificationsEnabled: r.email_notifications_enabled ?? true,
@@ -242,9 +242,9 @@ function mapSettings(r: any): BusinessSettings {
     momoAccountName: r.momo_account_name || EMPTY_SETTINGS.momoAccountName,
     operatingHours: r.operating_hours || EMPTY_SETTINGS.operatingHours,
     coverageAreas: r.coverage_areas || EMPTY_SETTINGS.coverageAreas,
-    defaultTurnaroundHours: Number(r.default_turnaround_hours || 24),
-    loyaltyWashesRequired: Number(r.loyalty_washes_required || 3),
-    discountPercent: Number(r.discount_percent || 10),
+    defaultTurnaroundHours: Number(r.default_turnaround_hours ?? 24),
+    loyaltyWashesRequired: Number(r.loyalty_washes_required ?? 3),
+    discountPercent: Number(r.discount_percent ?? 10),
     referralExpiryDays: r.referral_expiry_days,
     dailySummaryEmail: r.daily_summary_email || "",
     dailySummaryHour: Number(r.daily_summary_hour || 20),
@@ -417,10 +417,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           appliedTariffAmount: Number(o.applied_tariff_amount || 0),
           subtotalAmount: Number(o.subtotal_amount || o.total_amount || 0),
           discountType: (o.discount_type || "none") as DiscountType,
-          discountPercent: Number(o.discount_percent || 0),
-          discountAmount: Number(o.discount_amount || 0),
-          totalAmount: Number(o.total_amount || 0),
-          amountPaid: Number(o.amount_paid || 0),
+          discountPercent: Number(o.discount_percent ?? 0),
+          discountAmount: Number(o.discount_amount ?? 0),
+          totalAmount: Number(o.total_amount ?? 0),
+          amountPaid: Number(o.amount_paid ?? 0),
           balanceDue: Number(o.balance_due ?? Math.max(0, Number(o.total_amount) - Number(o.amount_paid))),
           paymentStatus: o.payment_status,
           status: o.status,
@@ -673,11 +673,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const supabase = getBrowserSupabase();
     if (!supabase) return { ok: false, error: "Supabase is not configured." };
 
-    const customer = input.customerId
+    // Look up the customer — for walk-in orders created by admin/staff, also try
+    // matching by phone number so the customer's account discounts are applied.
+    let customer = input.customerId
       ? users.find((u) => u.id === input.customerId)
       : currentUser?.role === "customer"
       ? currentUser
       : undefined;
+
+    if (!customer && input.isWalkIn && input.customerPhone) {
+      const cleanPhone = input.customerPhone.trim();
+      customer = users.find(
+        (u) => u.role === "customer" && u.phone === cleanPhone
+      );
+    }
 
     const category: CustomerCategory =
       customer?.studentStatus === "verified" ? "student" : "regular";
@@ -693,6 +702,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         discountType = "manual";
       }
     }
+    const discountPercent = discountType !== "none" ? settings.discountPercent : 0;
 
     const calc = buildOrderItemsAndTotals({
       lines: input.serviceLines,
@@ -700,7 +710,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       tariffs,
       category,
       discountType,
-      discountPercent: settings.discountPercent,
+      discountPercent,
       isEstimated: !input.isActualWeight,
     });
 
@@ -783,21 +793,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       changed_by: currentUser?.id || null,
     });
 
-    // If a referral or manual discount was applied, decrement available count now
-    if (customer && calc.discountType === "referral") {
-      await supabase
-        .from("toon_profiles")
-        .update({
-          available_referral_discounts: Math.max(0, customer.availableReferralDiscounts - 1),
-        })
-        .eq("id", customer.id);
-    } else if (customer && calc.discountType === "manual") {
-      await supabase
-        .from("toon_profiles")
-        .update({
-          manual_discounts_available: Math.max(0, customer.manualDiscountsAvailable - 1),
-        })
-        .eq("id", customer.id);
+    // If a discount was applied, decrement available count / reset loyalty streak now
+    // via server route (works for customer, staff, and admin) to prevent double-dipping
+    if (customer && calc.discountType !== "none") {
+      await fetch("/api/orders/sync-rewards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "consume_discount",
+          customerId: customer.id,
+          discountType: calc.discountType,
+        }),
+      }).catch(() => {});
     }
 
     // Notify admin & staff
@@ -891,13 +898,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       categoryOverride ||
       (customer?.studentStatus === "verified" ? "student" : order.appliedCategory);
 
+    // If the order doesn't already have a discount, check whether the linked customer
+    // qualifies now (e.g. an admin granted a manual discount after order placement).
+    // If the order already has a discount, preserve it (it was already consumed at placement).
+    let discountType: DiscountType = order.discountType;
+    let discountPercent =
+      order.discountType !== "none"
+        ? order.discountPercent > 0
+          ? order.discountPercent
+          : settings.discountPercent
+        : 0;
+    let newlyAppliedDiscountType: DiscountType = "none";
+
+    if (order.discountType === "none" && customer) {
+      if (customer.completedWashesStreak >= settings.loyaltyWashesRequired) {
+        discountType = "loyalty";
+      } else if (customer.availableReferralDiscounts > 0) {
+        discountType = "referral";
+      } else if (customer.manualDiscountsAvailable > 0) {
+        discountType = "manual";
+      }
+      if (discountType !== "none") {
+        discountPercent = settings.discountPercent;
+        newlyAppliedDiscountType = discountType;
+      }
+    }
+
     const calc = buildOrderItemsAndTotals({
       lines: validLines,
       services,
       tariffs,
       category,
-      discountType: order.discountType,
-      discountPercent: order.discountPercent || settings.discountPercent,
+      discountType,
+      discountPercent,
       isEstimated: false,
     });
 
@@ -929,6 +962,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         applied_category: category,
         applied_tariff_amount: calc.appliedTariffAmount,
         subtotal_amount: calc.subtotalAmount,
+        discount_type: calc.discountType,
+        discount_percent: calc.discountPercent,
         discount_amount: calc.discountAmount,
         total_amount: calc.totalAmount,
         payment_status: nextPayStatus,
@@ -941,6 +976,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       .eq("id", orderId);
 
     if (updErr) return { ok: false, error: updErr.message };
+
+    if (customer && newlyAppliedDiscountType !== "none" && calc.discountType === newlyAppliedDiscountType) {
+      await fetch("/api/orders/sync-rewards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "consume_discount",
+          customerId: customer.id,
+          discountType: newlyAppliedDiscountType,
+        }),
+      }).catch(() => {});
+    }
 
     // Replace order_items snapshot
     await supabase.from("toon_order_items").delete().eq("order_id", orderId);
@@ -1074,56 +1121,64 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
 
     // Section 3: Loyalty & Referral progression when an order is marked Completed
-    if (status === "completed" && order.customerId) {
-      const customer = users.find((u) => u.id === order.customerId);
-      if (customer) {
-        // 1. Loyalty streak update:
-        // If this order used a loyalty discount, reset streak to 0. Otherwise increment streak.
-        const nextStreak =
-          order.discountType === "loyalty" ? 0 : customer.completedWashesStreak + 1;
-
-        await supabase
-          .from("toon_profiles")
-          .update({ completed_washes_streak: nextStreak })
-          .eq("id", customer.id);
-
-        if (nextStreak === settings.loyaltyWashesRequired) {
-          await createAndDispatchNotification({
-            recipientIds: [customer.id],
+    // (handled server-side via /api/orders/sync-rewards so both Staff and Admin can update profiles)
+    if (status === "completed" && order.status !== "completed" && order.customerId) {
+      try {
+        const res = await fetch("/api/orders/sync-rewards", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "complete_order",
             orderId: order.id,
-            tagNumber: order.tagNumber,
-            title: `Loyalty Discount Unlocked (${settings.discountPercent}% Off)!`,
-            body: `You've completed ${settings.loyaltyWashesRequired} consecutive washes! Your next order automatically gets ${settings.discountPercent}% off.`,
-            eventKey: `${customer.id}:loyalty_unlocked:${order.id}`,
-          });
-        }
-
-        // 2. Referral reward check:
-        // When a referred customer's FIRST order is completed, credit the referrer with a 10% discount
-        if (customer.referredById && !customer.referralRewardCredited) {
-          const referrer = users.find((u) => u.id === customer.referredById);
-          await supabase
-            .from("toon_profiles")
-            .update({ referral_reward_credited: true })
-            .eq("id", customer.id);
-
-          if (referrer) {
-            await supabase
-              .from("toon_profiles")
-              .update({
-                available_referral_discounts: referrer.availableReferralDiscounts + 1,
-              })
-              .eq("id", referrer.id);
-
+            customerId: order.customerId,
+            discountType: order.discountType,
+            loyaltyWashesRequired: settings.loyaltyWashesRequired,
+          }),
+        });
+        const rewardData = await res.json();
+        if (rewardData.ok) {
+          if (rewardData.loyaltyUnlocked) {
             await createAndDispatchNotification({
-              recipientIds: [referrer.id],
+              recipientIds: [order.customerId],
+              orderId: order.id,
+              tagNumber: order.tagNumber,
+              title: `Loyalty Discount Unlocked (${settings.discountPercent}% Off)!`,
+              body: `You've completed ${settings.loyaltyWashesRequired} consecutive washes! Your next order automatically gets ${settings.discountPercent}% off.`,
+              eventKey: `${order.customerId}:loyalty_unlocked:${order.id}`,
+            });
+          }
+          if (rewardData.referrerCredited?.id) {
+            await createAndDispatchNotification({
+              recipientIds: [rewardData.referrerCredited.id],
               title: `Referral Discount Earned (${settings.discountPercent}% Off)!`,
-              body: `${customer.fullName} completed their first Tinoclean order! You've earned ${settings.discountPercent}% off one of your next orders.`,
-              eventKey: `referral_earned:${customer.id}`,
+              body: `${rewardData.referrerCredited.customerName} completed their first Tinoclean order! You've earned ${settings.discountPercent}% off one of your next orders.`,
+              eventKey: `referral_earned:${order.customerId}`,
             });
           }
         }
+      } catch {
+        // Non-blocking
       }
+    }
+
+    // If an order with a consumed discount is rejected or cancelled, refund the discount
+    if (
+      (status === "rejected" || status === "cancelled") &&
+      order.status !== "rejected" &&
+      order.status !== "cancelled" &&
+      order.customerId &&
+      order.discountType !== "none"
+    ) {
+      await fetch("/api/orders/sync-rewards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "refund_discount",
+          customerId: order.customerId,
+          discountType: order.discountType,
+          loyaltyWashesRequired: settings.loyaltyWashesRequired,
+        }),
+      }).catch(() => {});
     }
 
     if (order.customerId) {
